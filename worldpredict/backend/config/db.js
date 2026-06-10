@@ -1,38 +1,27 @@
-const sql = require("mssql");
+const { Pool } = require("pg");
 require("dotenv").config();
 
-// ─── DB CONFIG ─────────────────────────────────────────────────────────────
-// Đọc từ .env — hỗ trợ cả local (SQLEXPRESS) và cloud (Render / Railway)
-const sqlConfig = {
-  server:   process.env.DB_SERVER   || "localhost",
-  database: process.env.DB_NAME     || "PredictWC2026",
-  user:     process.env.DB_USER     || undefined,
-  password: process.env.DB_PASSWORD || undefined,
-  port:     parseInt(process.env.DB_PORT || "1433"),
-  options: {
-    instanceName:           process.env.DB_INSTANCE || undefined,
-    trustServerCertificate: true,
-    encrypt:                process.env.DB_ENCRYPT === "true",
-  },
-};
+// ─── POSTGRES CONFIG (SUPABASE) ─────────────────────────────
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-// Nếu dùng Windows Auth local (không có user/pass) → dùng trustedConnection
-if (!sqlConfig.user) {
-  sqlConfig.options.trustedConnection = true;
+// ─── LOG INIT ───────────────────────────────────────────────
+console.log("🟢 PostgreSQL pool created");
+
+// ─── QUERY HELPER ───────────────────────────────────────────
+async function query(text, params) {
+  return pool.query(text, params);
 }
 
-let pool = null;
-
-async function getPool() {
-  if (!pool) {
-    pool = await sql.connect(sqlConfig);
-    console.log(`✅ DB connected: ${sqlConfig.server} / ${sqlConfig.database}`);
-  }
-  return pool;
-}
-
+// ─── CLOSE POOL ─────────────────────────────────────────────
 async function closePool() {
-  if (pool) { await pool.close(); pool = null; }
+  await pool.end();
 }
 
-module.exports = { sql, getPool, closePool };
+module.exports = {
+  pool,
+  query,
+  closePool,
+};

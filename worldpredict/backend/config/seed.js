@@ -1,10 +1,6 @@
-/**
- * npm run seed
- * Tạo admin mặc định + bet rules + 10 trận WC2026 mẫu
- */
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
-const { getPool, sql } = require("./db");
+const { query } = require("./db");
 
 const ROUNDS = ["Vòng bảng","Vòng 1/8","Tứ kết","Bán kết","Tranh hạng 3","Chung kết"];
 
@@ -29,63 +25,75 @@ const TEAMS = [
 ];
 
 async function seed() {
-  const pool = await getPool();
-
-  // ── Admin user ─────────────────────────────────────────────────────────────
+  // ── Admin user ───────────────────────────────────────────────
   const hash = await bcrypt.hash("admin123", 10);
-  await pool.request()
-    .input("username", sql.NVarChar, "admin")
-    .input("password", sql.NVarChar, hash)
-    .input("fullName", sql.NVarChar, "Administrator")
-    .query(`
-      IF NOT EXISTS (SELECT 1 FROM Users WHERE Username = @username)
-        INSERT INTO Users (Username, Password, FullName, Role)
-        VALUES (@username, @password, @fullName, 'admin')
-    `);
+
+  await query(
+    `
+    INSERT INTO users (username, password, full_name, role)
+    VALUES ($1, $2, $3, 'admin')
+    ON CONFLICT (username) DO NOTHING
+    `,
+    ["admin", hash, "Administrator"]
+  );
+
   console.log("✅ Admin seeded");
 
-  // ── Bet rules ──────────────────────────────────────────────────────────────
+  // ── Bet rules ────────────────────────────────────────────────
   for (const r of DEFAULT_BET_RULES) {
-    await pool.request()
-      .input("round",   sql.NVarChar, r.round)
-      .input("win",     sql.BigInt,   r.win)
-      .input("draw",    sql.BigInt,   r.draw)
-      .input("lose",    sql.BigInt,   r.lose)
-      .input("dfLose",  sql.BigInt,   r.dfLose)
-      .query(`
-        IF NOT EXISTS (SELECT 1 FROM BetRules WHERE Round = @round)
-          INSERT INTO BetRules (Round, WinAmount, DrawAmount, LoseAmount, DefaultLoseAmount)
-          VALUES (@round, @win, @draw, @lose, @dfLose)
-      `);
+    await query(
+      `
+      INSERT INTO bet_rules (round, win_amount, draw_amount, lose_amount, default_lose_amount)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (round) DO NOTHING
+      `,
+      [r.round, r.win, r.draw, r.lose, r.dfLose]
+    );
   }
+
   console.log("✅ Bet rules seeded");
 
-  // ── Sample matches ─────────────────────────────────────────────────────────
+  // ── Sample matches ───────────────────────────────────────────
   const pairs = [[0,1],[2,3],[4,5],[6,7],[0,4],[1,5],[2,6],[3,7],[0,2],[1,3]];
+
   for (let i = 0; i < pairs.length; i++) {
     const [hi, ai] = pairs[i];
-    const home = TEAMS[hi], away = TEAMS[ai];
+    const home = TEAMS[hi];
+    const away = TEAMS[ai];
     const round = ROUNDS[Math.min(Math.floor(i / 2), 5)];
+
     const matchDate = new Date(Date.now() + (i - 3) * 86400000 + 2 * 3600000);
-    await pool.request()
-      .input("homeId",   sql.Int,      home.id)
-      .input("homeName", sql.NVarChar, home.name)
-      .input("homeLogo", sql.NVarChar, home.logo)
-      .input("awayId",   sql.Int,      away.id)
-      .input("awayName", sql.NVarChar, away.name)
-      .input("awayLogo", sql.NVarChar, away.logo)
-      .input("matchDate",sql.DateTime2,matchDate)
-      .input("round",    sql.NVarChar, round)
-      .query(`
-        IF NOT EXISTS (SELECT 1 FROM Matches WHERE HomeTeamId=@homeId AND AwayTeamId=@awayId AND CAST(MatchDate AS DATE)=CAST(@matchDate AS DATE))
-          INSERT INTO Matches (HomeTeamId,HomeTeamName,HomeTeamLogo,AwayTeamId,AwayTeamName,AwayTeamLogo,MatchDate,Round)
-          VALUES (@homeId,@homeName,@homeLogo,@awayId,@awayName,@awayLogo,@matchDate,@round)
-      `);
+
+    await query(
+      `
+      INSERT INTO matches (
+        home_team_id, home_team_name, home_team_logo,
+        away_team_id, away_team_name, away_team_logo,
+        match_date, round
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (home_team_id, away_team_id, match_date::date) DO NOTHING
+      `,
+      [
+        home.id,
+        home.name,
+        home.logo,
+        away.id,
+        away.name,
+        away.logo,
+        matchDate,
+        round
+      ]
+    );
   }
+
   console.log("✅ Sample matches seeded");
 
-  console.log("\n🎉 Seed hoàn tất! Đăng nhập: admin / admin123");
+  console.log("\n🎉 Seed hoàn tất! Login: admin / admin123");
   process.exit(0);
 }
 
-seed().catch(e => { console.error("❌ Seed error:", e.message); process.exit(1); });
+seed().catch((e) => {
+  console.error("❌ Seed error:", e.message);
+  process.exit(1);
+});

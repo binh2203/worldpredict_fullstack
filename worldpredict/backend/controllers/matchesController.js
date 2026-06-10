@@ -1,91 +1,164 @@
-const { getPool, sql } = require("../config/db");
+const { query } = require("../config/db");
 
-// GET /api/matches
+// ─── GET /api/matches ─────────────────────────────────────────────
 async function getMatches(req, res) {
-  const pool = await getPool();
-  const result = await pool.request().query(`
-    SELECT
-      m.Id,
-      m.HomeTeamId,  ht.Name AS HomeTeamName,  ht.Logo AS HomeTeamLogo,
-      m.AwayTeamId,  at.Name AS AwayTeamName,  at.Logo AS AwayTeamLogo,
-      m.MatchDate, m.Round, m.Status,
-      m.HomeGoals, m.AwayGoals, m.Handicap,
-      m.IsLocked, m.LockedAt,
-      m.ResultLocked, m.ResultSetAt, m.ResultSetBy
-    FROM Matches m
-    JOIN Teams ht ON ht.Id = m.HomeTeamId
-    JOIN Teams at ON at.Id = m.AwayTeamId
-    ORDER BY m.MatchDate ASC
-  `);
-  res.json(result.recordset.map(formatMatch));
+  try {
+    const result = await query(`
+      SELECT
+        m.id,
+        m.home_team_id,
+        ht.name AS home_team_name,
+        ht.logo AS home_team_logo,
+        m.away_team_id,
+        at.name AS away_team_name,
+        at.logo AS away_team_logo,
+        m.match_date,
+        m.round,
+        m.status,
+        m.home_goals,
+        m.away_goals,
+        m.handicap,
+        m.is_locked,
+        m.locked_at,
+        m.result_locked,
+        m.result_set_at,
+        m.result_set_by
+      FROM matches m
+      JOIN teams ht ON ht.id = m.home_team_id
+      JOIN teams at ON at.id = m.away_team_id
+      ORDER BY m.match_date ASC
+    `);
+
+    res.json(result.rows.map(formatMatch));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
-// PUT /api/matches/:id/handicap  (admin)
+// ─── PUT /api/matches/:id/handicap ───────────────────────────────
 async function setHandicap(req, res) {
   const { id } = req.params;
   const { handicap } = req.body;
 
-  const pool = await getPool();
-  const check = await pool.request()
-    .input("id", sql.BigInt, id)
-    .query("SELECT IsLocked, ResultLocked FROM Matches WHERE Id = @id");
-  const m = check.recordset[0];
-  if (!m)             return res.status(404).json({ message: "Không tìm thấy trận" });
-  if (m.ResultLocked) return res.status(400).json({ message: "Kết quả đã niêm phong" });
-  if (m.IsLocked)     return res.status(400).json({ message: "Trận đã khóa, không thể sửa kèo" });
+  try {
+    const check = await query(
+      `SELECT is_locked, result_locked FROM matches WHERE id = $1`,
+      [id]
+    );
 
-  const h = (handicap === null || handicap === "") ? null : parseFloat(handicap);
-  await pool.request()
-    .input("id",       sql.BigInt, id)
-    .input("handicap", sql.Decimal(4,2), h)
-    .query("UPDATE Matches SET Handicap = @handicap WHERE Id = @id");
+    const m = check.rows[0];
 
-  res.json({ message: h === null ? "Đã bỏ kèo chấp" : `Kèo chấp: ${h}` });
+    if (!m) {
+      return res.status(404).json({ message: "Không tìm thấy trận" });
+    }
+
+    if (m.result_locked) {
+      return res.status(400).json({ message: "Kết quả đã niêm phong" });
+    }
+
+    if (m.is_locked) {
+      return res.status(400).json({ message: "Trận đã khóa, không thể sửa kèo" });
+    }
+
+    const h =
+      handicap === null || handicap === ""
+        ? null
+        : parseFloat(handicap);
+
+    await query(
+      `UPDATE matches SET handicap = $1 WHERE id = $2`,
+      [h, id]
+    );
+
+    res.json({
+      message:
+        h === null ? "Đã bỏ kèo chấp" : `Kèo chấp: ${h}`,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
-// POST /api/matches/:id/result  (admin) — gọi sp_SetMatchResult
+// ─── POST /api/matches/:id/result ────────────────────────────────
 async function setResult(req, res) {
   const { id } = req.params;
   const { homeGoals, awayGoals } = req.body;
 
-  if (homeGoals == null || awayGoals == null || homeGoals < 0 || awayGoals < 0)
+  if (
+    homeGoals == null ||
+    awayGoals == null ||
+    homeGoals < 0 ||
+    awayGoals < 0
+  ) {
     return res.status(400).json({ message: "Tỷ số không hợp lệ" });
+  }
 
-  const pool = await getPool();
-  await pool.request()
-    .input("MatchId",   sql.BigInt, id)
-    .input("HomeGoals", sql.Int,    parseInt(homeGoals))
-    .input("AwayGoals", sql.Int,    parseInt(awayGoals))
-    .input("AdminId",   sql.BigInt, req.user.id)
-    .execute("sp_SetMatchResult");
+  try {
+    await query(
+      `
+      SELECT sp_set_match_result($1, $2, $3, $4)
+      `,
+      [
+        id,
+        parseInt(homeGoals),
+        parseInt(awayGoals),
+        req.user.id,
+      ]
+    );
 
-  res.json({ message: "Kết quả đã lưu và niêm phong vĩnh viễn" });
+    res.json({
+      message: "Kết quả đã lưu và niêm phong vĩnh viễn",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
-// POST /api/matches/auto-lock  (admin)
+// ─── POST /api/matches/auto-lock ──────────────────────────────────
 async function autoLock(req, res) {
-  const pool = await getPool();
-  await pool.request().execute("sp_AutoLockMatches");
-  res.json({ message: "Auto-lock hoàn tất" });
+  try {
+    await query(`SELECT sp_auto_lock_matches()`);
+    res.json({ message: "Auto-lock hoàn tất" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
+// ─── FORMAT RESPONSE ──────────────────────────────────────────────
 function formatMatch(m) {
   return {
-    id:           m.Id,
-    homeTeam:     { id: m.HomeTeamId, name: m.HomeTeamName, logo: m.HomeTeamLogo },
-    awayTeam:     { id: m.AwayTeamId, name: m.AwayTeamName, logo: m.AwayTeamLogo },
-    matchDate:    m.MatchDate,
-    round:        m.Round,
-    status:       m.Status,
-    homeGoals:    m.HomeGoals,
-    awayGoals:    m.AwayGoals,
-    handicap:     m.Handicap,
-    isLocked:     !!m.IsLocked,
-    lockedAt:     m.LockedAt,
-    resultLocked: !!m.ResultLocked,
-    resultSetAt:  m.ResultSetAt,
-    resultSetBy:  m.ResultSetBy,
+    id: m.id,
+    homeTeam: {
+      id: m.home_team_id,
+      name: m.home_team_name,
+      logo: m.home_team_logo,
+    },
+    awayTeam: {
+      id: m.away_team_id,
+      name: m.away_team_name,
+      logo: m.away_team_logo,
+    },
+    matchDate: m.match_date,
+    round: m.round,
+    status: m.status,
+    homeGoals: m.home_goals,
+    awayGoals: m.away_goals,
+    handicap: m.handicap,
+    isLocked: !!m.is_locked,
+    lockedAt: m.locked_at,
+    resultLocked: !!m.result_locked,
+    resultSetAt: m.result_set_at,
+    resultSetBy: m.result_set_by,
   };
 }
 
-module.exports = { getMatches, setHandicap, setResult, autoLock };
+module.exports = {
+  getMatches,
+  setHandicap,
+  setResult,
+  autoLock,
+};
