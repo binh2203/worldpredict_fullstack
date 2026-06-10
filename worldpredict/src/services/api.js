@@ -22,7 +22,7 @@ const api = {
     }
 
     // IMPORTANT: backend uses /api prefix
-    const url = `${API_URL}/api${path}`;
+    const url = `${API_URL}${path}`;
 
     const res = await fetch(url, {
       ...opts,

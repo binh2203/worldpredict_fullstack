@@ -1,6 +1,6 @@
 // ─── APP CONSTANTS ────────────────────────────────────────────────────────────
 
-export const API_URL = "https://worldpredict-backend.onrender.com";
+export const API_URL = "https://worldpredict-backend.onrender.com/api";
 export const LOCK_BEFORE_MINUTES = 30;
 export const USE_MOCK = false;
 
