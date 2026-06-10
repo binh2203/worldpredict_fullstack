@@ -184,7 +184,25 @@ async function syncHandicaps(pool, matches) {
     const status = mapStatus(m);
     if (status !== "NS") return false;
 
-    const matchTime = new Date(`${m.date}T${m.kickoff || "00:00"}:00Z`).getTime();
+    // Build UTC time đúng (dùng kickoffUtc nếu có, không thì convert timezone)
+    let matchTime;
+    if (m.kickoffUtc) {
+      matchTime = new Date(m.kickoffUtc).getTime();
+    } else if (m.kickoff && m.timezone) {
+      const assumed = new Date(`${m.date}T${m.kickoff}:00Z`);
+      const formatter = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: m.timezone,
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false,
+      });
+      const localFormatted = formatter.format(assumed).replace(" ", "T");
+      const offsetMs = new Date(localFormatted + "Z").getTime() - assumed.getTime();
+      matchTime = new Date(assumed.getTime() - offsetMs).getTime();
+    } else {
+      matchTime = new Date(`${m.date}T${m.kickoff || "00:00"}:00Z`).getTime();
+    }
+
     const diff = matchTime - now;
     return diff > 0 && diff <= twoHoursMs;
   });
@@ -298,7 +316,41 @@ async function fetchAndSync() {
 
   for (const m of matches) {
     const fixtureId = String(m.id);
-    const matchDate = `${m.date}T${m.kickoff || "00:00"}:00Z`;
+    // Build matchDate đúng UTC:
+    // - Nếu Zafronix trả m.kickoffUtc (ISO UTC string) → dùng trực tiếp
+    // - Nếu trả m.kickoff dạng "HH:MM" + m.timezone (VD "America/New_York") → convert sang UTC
+    // - Fallback: giả sử kickoff là UTC (Z)
+    let matchDate;
+    if (m.kickoffUtc) {
+      matchDate = m.kickoffUtc; // đã là UTC ISO string
+    } else if (m.kickoff && m.timezone) {
+      // Convert giờ địa phương → UTC đúng cách:
+      // Tạo string "naive" rồi dùng Intl để tính offset thực tế của timezone đó
+      // tại thời điểm đó (có tính DST).
+      const localStr = `${m.date}T${m.kickoff}:00`;
+      // Trick: parse naive string rồi xem khi format lại theo timezone đó
+      // nó lệch bao nhiêu so với UTC interpretation ban đầu.
+      const naiveMs = new Date(localStr).getTime(); // JS parse as local → không dùng
+      // Dùng cách an toàn: tạo Date UTC rồi format theo tz, so sánh offset
+      // Step 1: tạm thời coi localStr là UTC
+      const assumed = new Date(localStr + "Z"); // parse as UTC
+      // Step 2: format ngược lại theo đúng timezone → ra giờ địa phương tương ứng
+      const formatter = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: m.timezone,
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false,
+      });
+      const localFormatted = formatter.format(assumed).replace(" ", "T");
+      // Step 3: offset = assumed(UTC) - localFormatted(local) → adjust
+      const localAsDate = new Date(localFormatted + "Z");
+      const offsetMs = localAsDate.getTime() - assumed.getTime();
+      // UTC thực = giờ địa phương - offset
+      matchDate = new Date(assumed.getTime() - offsetMs).toISOString();
+    } else {
+      // Fallback: giả sử kickoff là UTC
+      matchDate = `${m.date}T${m.kickoff || "00:00"}:00Z`;
+    }
     const status    = mapStatus(m);
     const round     = mapStageToRound(m.stageNormalized || m.stage);
     const homeTeam  = m.homeTeam;
@@ -395,4 +447,53 @@ function stopSyncService() {
   }
 }
 
-module.exports = { startSyncService, stopSyncService, fetchAndSync };
+// ─── Manual trigger: fetch kèo ngay lập tức cho tất cả trận NS sắp đấu ───────
+async function syncHandicapsManual() {
+  const apiKey = process.env.ODDS_API_KEY;
+  if (!apiKey) {
+    return { updated: 0, message: "ODDS_API_KEY chưa cấu hình trong .env" };
+  }
+
+  // Fetch danh sách trận từ DB (NS + chưa có kèo)
+  const pool = await getPool();
+  const result = await pool.query(`
+    SELECT Id, HomeTeamName, AwayTeamName, MatchDate, FixtureId
+    FROM matches
+    WHERE Status = 'NS'
+      AND (OddsFetched = FALSE OR OddsFetched IS NULL)
+      AND MatchDate > NOW()
+    ORDER BY MatchDate ASC
+  `);
+
+  if (!result.rows.length) {
+    return { updated: 0, message: "Không có trận NS nào cần cập nhật kèo" };
+  }
+
+  const oddsData = await fetchOdds();
+  if (!oddsData.length) {
+    return { updated: 0, message: "OddsAPI không trả về dữ liệu (kiểm tra key / quota)" };
+  }
+
+  let updated = 0;
+  for (const row of result.rows) {
+    const oddsEvent = oddsData.find(ev =>
+      teamsMatch(row.hometeamname, ev.home_team) &&
+      teamsMatch(row.awayteamname, ev.away_team)
+    );
+    if (!oddsEvent) continue;
+
+    const handicap = parseHandicap(oddsEvent, row.hometeamname);
+    if (handicap === null) continue;
+
+    await pool.query(
+      `UPDATE matches SET Handicap = $1, OddsFetched = TRUE, UpdatedAt = NOW() WHERE Id = $2`,
+      [handicap, row.id]
+    );
+    console.log(`[OddsSync Manual] ✅ ${row.hometeamname} vs ${row.awayteamname}: handicap = ${handicap}`);
+    updated++;
+  }
+
+  return { updated, message: `Đã cập nhật kèo cho ${updated}/${result.rows.length} trận` };
+}
+
+module.exports = { startSyncService, stopSyncService, fetchAndSync, syncHandicapsManual };
