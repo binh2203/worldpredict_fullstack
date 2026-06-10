@@ -7,17 +7,16 @@ export function applyHandicap(homeGoals, awayGoals, handicap) {
   const adjHome = homeGoals + (handicap || 0);
   if (adjHome > awayGoals) return "home";
   if (adjHome < awayGoals) return "away";
-  return null; // hòa kèo: không ai thắng
+  return null;
 }
 
-/** Kết quả thực tế (có tính kèo nếu có).
- *  Trả "home" | "away" | null (hòa = null vì không còn lựa chọn hòa) */
+/** Kết quả thực tế (có tính kèo nếu có). */
 export function getMatchResult(homeGoals, awayGoals, handicap) {
   if (homeGoals === null || awayGoals === null) return null;
   if (handicap) return applyHandicap(homeGoals, awayGoals, handicap);
   if (homeGoals > awayGoals) return "home";
   if (homeGoals < awayGoals) return "away";
-  return null; // hòa thực tế: không ai đúng
+  return null;
 }
 
 /** Kiểm tra trận có nên bị khóa chưa (frontend guard) */
@@ -34,6 +33,8 @@ export function matchStatusType(m) {
 
 // ─── FORMAT HELPERS ───────────────────────────────────────────────────────────
 
+const VN_TZ = "Asia/Ho_Chi_Minh";
+
 /** Format điểm: +3 điểm / -1 điểm */
 export function fmtPoints(n) {
   if (n === null || n === undefined) return "0 điểm";
@@ -44,15 +45,21 @@ export function fmtPoints(n) {
 export const fmtMoney = fmtPoints;
 
 export function fmtDate(d) {
-  return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  return new Date(d).toLocaleDateString("vi-VN", {
+    day: "2-digit", month: "2-digit", timeZone: VN_TZ,
+  });
 }
 
 export function fmtTime(d) {
-  return new Date(d).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  return new Date(d).toLocaleTimeString("vi-VN", {
+    hour: "2-digit", minute: "2-digit", timeZone: VN_TZ,
+  });
 }
 
 export function fmtDateTime(d) {
-  return new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return new Date(d).toLocaleString("vi-VN", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: VN_TZ,
+  });
 }
 
 export function getCountdown(dateStr) {

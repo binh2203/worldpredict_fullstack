@@ -2,20 +2,28 @@ const { Pool } = require("pg");
 require("dotenv").config();
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  host:     process.env.DB_HOST     || "localhost",
+  port:     parseInt(process.env.DB_PORT || "5432"),
+  database: process.env.DB_NAME     || "PredictWC2026",
+  user:     process.env.DB_USER     || "postgres",
+  password: process.env.DB_PASSWORD || "Hanhbac18@",
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
 });
 
-function getPool() {
+pool.on("connect", () => {
+  console.log(`✅ DB connected: ${process.env.DB_HOST || "localhost"} / ${process.env.DB_NAME}`);
+});
+
+pool.on("error", (err) => {
+  console.error("❌ Unexpected DB error:", err.message);
+});
+
+async function getPool() {
   return pool;
 }
 
-function closePool() {
-  return pool.end();
+async function closePool() {
+  await pool.end();
 }
 
-module.exports = {
-  getPool,
-  pool,
-  closePool,
-};
+module.exports = { pool, getPool, closePool };

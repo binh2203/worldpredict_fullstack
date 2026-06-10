@@ -1,13 +1,12 @@
 import { C } from "../styles/theme";
 
-// ─── NAVBAR ───────────────────────────────────────────────────────────────────
-
 export default function Navbar({ page, setPage, currentUser, doLogout, setModal }) {
   const navItems = [
     { id: "home",        label: "🏠 Trang chủ" },
     { id: "matches",     label: "📅 Lịch đấu" },
     { id: "leaderboard", label: "🏆 Xếp hạng" },
     { id: "history",     label: "📜 Lịch sử" },
+    { id: "test",        label: "🧪 Test" },
     ...(currentUser?.role === "admin" ? [{ id: "admin", label: "👑 Admin" }] : []),
   ];
 
@@ -52,7 +51,6 @@ export default function Navbar({ page, setPage, currentUser, doLogout, setModal 
               <button className="btn btn-ghost btn-sm" onClick={doLogout}>Đăng xuất</button>
             </>
           ) : (
-            /* CHỈ ĐĂNG NHẬP — không còn nút Đăng ký */
             <button className="btn btn-gold btn-sm" onClick={() => setModal({ type: "login" })}>
               🔐 Đăng nhập
             </button>

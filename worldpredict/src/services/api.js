@@ -2,7 +2,7 @@ import { API_URL, USE_MOCK } from "../constants";
 
 // ─── API CLIENT ───────────────────────────────────────────────────────────────
 // Khi USE_MOCK = true  → chạy offline (localStorage)
-// Khi USE_MOCK = false → gọi backend Express + SQL Server thật
+// Khi USE_MOCK = false → gọi backend Express + PostgreSQL thật
 
 const api = {
   token: null,
@@ -24,37 +24,36 @@ const api = {
   },
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
-  login: (username, password) =>
-    api.call("/auth/login",    { method: "POST", body: JSON.stringify({ username, password }) }),
-  register: (username, password, fullName, phone) =>
-    api.call("/auth/register", { method: "POST", body: JSON.stringify({ username, password, fullName, phone }) }),
+  login:    (username, password) =>
+    api.call("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
 
   // ── MATCHES ───────────────────────────────────────────────────────────────
-  getMatches:      ()                     => api.call("/matches"),
-  setHandicap:     (matchId, handicap)    => api.call(`/matches/${matchId}/handicap`, { method: "PUT",  body: JSON.stringify({ handicap }) }),
-  setResult:       (matchId, hg, ag)      => api.call(`/matches/${matchId}/result`,   { method: "POST", body: JSON.stringify({ homeGoals: hg, awayGoals: ag }) }),
-  triggerAutoLock: ()                     => api.call("/matches/auto-lock", { method: "POST" }),
+  getMatches:      ()                  => api.call("/matches"),
+  setHandicap:     (matchId, handicap) => api.call(`/matches/${matchId}/handicap`, { method: "PUT",  body: JSON.stringify({ handicap }) }),
+  setResult:       (matchId, hg, ag)   => api.call(`/matches/${matchId}/result`,   { method: "POST", body: JSON.stringify({ homeGoals: hg, awayGoals: ag }) }),
+  triggerAutoLock: ()                  => api.call("/matches/auto-lock", { method: "POST" }),
 
   // ── PREDICTIONS ───────────────────────────────────────────────────────────
-  getPredictions:   ()                    => api.call("/predictions/my"),
-  getAllPredictions: ()                    => api.call("/predictions/all"),
-  predict:          (matchId, choice)     => api.call("/predictions", { method: "POST", body: JSON.stringify({ matchId, choice }) }),
+  getPredictions:   ()               => api.call("/predictions/my"),
+  getAllPredictions: ()               => api.call("/predictions/all"),
+  predict:          (matchId, choice) => api.call("/predictions", { method: "POST", body: JSON.stringify({ matchId, choice }) }),
 
   // ── BET RULES ─────────────────────────────────────────────────────────────
-  getBetRules:  ()              => api.call("/betrules"),
-  saveBetRule:  (round, data)   => api.call("/betrules", { method: "PUT", body: JSON.stringify({ round, ...data }) }),
+  getBetRules: ()             => api.call("/betrules"),
+  saveBetRule: (round, data)  => api.call("/betrules", { method: "PUT", body: JSON.stringify({ round, ...data }) }),
 
   // ── USERS ─────────────────────────────────────────────────────────────────
-  getUsers:         ()          => api.call("/users"),
-  getUserStats:     ()          => api.call("/users/my-stats"),
-  createUser:       (data)      => api.call("/users", { method: "POST", body: JSON.stringify(data) }),
-  toggleUserActive: (userId)    => api.call(`/users/${userId}/toggle-active`, { method: "PUT" }),
+  getUsers:         ()       => api.call("/users"),
+  getUserStats:     ()       => api.call("/users/my-stats"),
+  createUser:       (data)   => api.call("/users", { method: "POST", body: JSON.stringify(data) }),
+  toggleUserActive: (userId) => api.call(`/users/${userId}/toggle-active`, { method: "PUT" }),
 
   // ── LEADERBOARD ───────────────────────────────────────────────────────────
   getLeaderboard: () => api.call("/leaderboard"),
 
-  // ── WC FIXTURES ───────────────────────────────────────────────────────────
-  getWcFixtures: (round) => api.call("/wc-fixtures" + (round ? `?round=${encodeURIComponent(round)}` : "")),
+  // ── WC FIXTURES (Zafronix — qua routes/index.js → /api/wc-fixtures) ──────
+  getWcFixtures: (round) =>
+    api.call("/wc-fixtures" + (round ? `?round=${encodeURIComponent(round)}` : "")),
 };
 
 export { USE_MOCK };

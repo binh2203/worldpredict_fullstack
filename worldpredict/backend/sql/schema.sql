@@ -1,181 +1,203 @@
--- ─── DATABASE SCHEMA: PredictWC2026 ──────────────────────────────────────────
--- Chạy file này 1 lần để khởi tạo DB
--- Local:   Server=localhost\SQLEXPRESS hoặc localhost\MSSQLSERVER02
--- Cloud:   Điền DB_SERVER trong .env
+-- ============================================================
+-- WorldPredict 2026 — PostgreSQL Schema
+-- Chạy 1 lần để khởi tạo DB
+-- ============================================================
 
-CREATE DATABASE PredictWC2026;
-GO
-USE PredictWC2026;
-GO
-
--- ── Users ─────────────────────────────────────────────────────────────────────
-CREATE TABLE Users (
-  Id           INT           IDENTITY(1,1) PRIMARY KEY,
-  Username     NVARCHAR(50)  UNIQUE NOT NULL,
-  PasswordHash NVARCHAR(255) NOT NULL,
-  FullName     NVARCHAR(100) NOT NULL,
-  Phone        NVARCHAR(20),
-  Role         NVARCHAR(10)  NOT NULL DEFAULT 'user',  -- 'user' | 'admin'
-  Points       INT           NOT NULL DEFAULT 0,        -- điểm tích lũy
-  IsActive     BIT           NOT NULL DEFAULT 1,
-  CreatedAt    DATETIME2     NOT NULL DEFAULT GETUTCDATE()
+-- ── Users ──────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Users (
+  Id           SERIAL        PRIMARY KEY,
+  Username     VARCHAR(50)   NOT NULL UNIQUE,
+  PasswordHash VARCHAR(255)  NOT NULL,
+  FullName     VARCHAR(100)  NOT NULL,
+  Phone        VARCHAR(20),
+  Role         VARCHAR(10)   NOT NULL DEFAULT 'user',   -- 'user' | 'admin'
+  Points       INTEGER       NOT NULL DEFAULT 0,
+  IsActive     BOOLEAN       NOT NULL DEFAULT TRUE,
+  CreatedAt    TIMESTAMP     NOT NULL DEFAULT NOW()
 );
 
--- Admin mặc định (password: admin123)
-INSERT INTO Users (Username, PasswordHash, FullName, Role)
-VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVwB01DBi2', 'Administrator', 'admin');
-GO
-
--- ── Teams (cache logo từ Zafronix/flagcdn) ────────────────────────────────────
--- Không bắt buộc — Matches lưu trực tiếp tên+logo
--- (Để trống, Matches dùng HomeTeamName/AwayTeamName trực tiếp)
-
--- ── Matches ───────────────────────────────────────────────────────────────────
-CREATE TABLE Matches (
-  Id           INT           IDENTITY(1,1) PRIMARY KEY,
-  HomeTeamId   INT           NOT NULL DEFAULT 0,       -- 0 nếu chưa có Teams table
-  HomeTeamName NVARCHAR(100) NOT NULL,
-  HomeTeamLogo NVARCHAR(500),
-  AwayTeamId   INT           NOT NULL DEFAULT 0,
-  AwayTeamName NVARCHAR(100) NOT NULL,
-  AwayTeamLogo NVARCHAR(500),
-  MatchDate    DATETIME2     NOT NULL,
-  Round        NVARCHAR(50)  NOT NULL,
-  Status       NVARCHAR(10)  NOT NULL DEFAULT 'NS',    -- NS|1H|HT|2H|FT|AET|PEN
-  HomeGoals    INT,
-  AwayGoals    INT,
-  Handicap     FLOAT,
-  IsLocked     BIT           NOT NULL DEFAULT 0,
-  LockedAt     DATETIME2,
-  ResultLocked BIT           NOT NULL DEFAULT 0,       -- TRUE vĩnh viễn sau khi set kết quả
-  ResultSetAt  DATETIME2,
-  ResultSetBy  INT REFERENCES Users(Id)
+-- ── Matches ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Matches (
+  Id           SERIAL        PRIMARY KEY,
+  HomeTeamId   INTEGER       NOT NULL DEFAULT 0,
+  HomeTeamName VARCHAR(100)  NOT NULL,
+  HomeTeamLogo VARCHAR(500),
+  AwayTeamId   INTEGER       NOT NULL DEFAULT 0,
+  AwayTeamName VARCHAR(100)  NOT NULL,
+  AwayTeamLogo VARCHAR(500),
+  MatchDate    TIMESTAMP     NOT NULL,
+  Round        VARCHAR(50)   NOT NULL,
+  Status       VARCHAR(10)   NOT NULL DEFAULT 'NS',     -- NS|1H|HT|2H|FT|AET|PEN
+  HomeGoals    INTEGER,
+  AwayGoals    INTEGER,
+  Handicap     NUMERIC(5,2)  NOT NULL DEFAULT 0,
+  IsLocked     BOOLEAN       NOT NULL DEFAULT FALSE,
+  LockedAt     TIMESTAMP,
+  ResultLocked BOOLEAN       NOT NULL DEFAULT FALSE,
+  ResultSetAt  TIMESTAMP,
+  ResultSetBy  INTEGER       REFERENCES Users(Id)
 );
-GO
 
--- ── Predictions ───────────────────────────────────────────────────────────────
-CREATE TABLE Predictions (
-  Id        INT          IDENTITY(1,1) PRIMARY KEY,
-  UserId    INT          NOT NULL REFERENCES Users(Id),
-  MatchId   INT          NOT NULL REFERENCES Matches(Id),
-  Choice    NVARCHAR(10) NOT NULL,                     -- 'home' | 'draw' | 'away'
-  CreatedAt DATETIME2    NOT NULL DEFAULT GETUTCDATE(),
-  UNIQUE (UserId, MatchId)                             -- 1 dự đoán/người/trận
+-- ── Predictions ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Predictions (
+  Id        SERIAL       PRIMARY KEY,
+  UserId    INTEGER      NOT NULL REFERENCES Users(Id),
+  MatchId   INTEGER      NOT NULL REFERENCES Matches(Id),
+  Choice    VARCHAR(10)  NOT NULL,                      -- 'home' | 'away'
+  CreatedAt TIMESTAMP    NOT NULL DEFAULT NOW(),
+  UNIQUE (UserId, MatchId)                              -- 1 dự đoán/người/trận
 );
-GO
 
--- ── BetRules ──────────────────────────────────────────────────────────────────
-CREATE TABLE BetRules (
-  Id                INT          IDENTITY(1,1) PRIMARY KEY,
-  Round             NVARCHAR(50) UNIQUE NOT NULL,
-  WinPoints         INT          NOT NULL DEFAULT 3,
-  LosePoints        INT          NOT NULL DEFAULT 1,
-  DefaultLosePoints INT          NOT NULL DEFAULT 2
+-- ── BetRules ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS BetRules (
+  Id                SERIAL      PRIMARY KEY,
+  Round             VARCHAR(50) NOT NULL UNIQUE,
+  WinPoints         INTEGER     NOT NULL DEFAULT 3,
+  LosePoints        INTEGER     NOT NULL DEFAULT 1,
+  DefaultLosePoints INTEGER     NOT NULL DEFAULT 2
 );
 
 INSERT INTO BetRules (Round, WinPoints, LosePoints, DefaultLosePoints) VALUES
-  (N'Vòng bảng',    3,  1, 2),
-  (N'Vòng 1/16',    4,  1, 2),
-  (N'Vòng 1/8',     5,  2, 3),
-  (N'Tứ kết',       7,  3, 4),
-  (N'Bán kết',      10, 4, 6),
-  (N'Tranh hạng 3', 10, 4, 6),
-  (N'Chung kết',    15, 5, 8);
-GO
+  ('Vòng bảng',    3,  1, 2),
+  ('Vòng 1/16',    4,  1, 2),
+  ('Vòng 1/8',     5,  2, 3),
+  ('Tứ kết',       7,  3, 4),
+  ('Bán kết',      10, 4, 6),
+  ('Tranh hạng 3', 10, 4, 6),
+  ('Chung kết',    15, 5, 8)
+ON CONFLICT (Round) DO NOTHING;
 
--- ── PredictionResults ─────────────────────────────────────────────────────────
-CREATE TABLE PredictionResults (
-  Id           INT           IDENTITY(1,1) PRIMARY KEY,
-  PredictionId INT           REFERENCES Predictions(Id),  -- NULL nếu không dự đoán
-  UserId       INT           NOT NULL REFERENCES Users(Id),
-  MatchId      INT           NOT NULL REFERENCES Matches(Id),
-  IsCorrect    BIT           NOT NULL DEFAULT 0,
-  PointChange  INT           NOT NULL,                    -- +3 / -1 / -2 …
-  Reason       NVARCHAR(20)  NOT NULL,                    -- 'win' | 'lose' | 'no_prediction'
-  CalculatedAt DATETIME2     NOT NULL DEFAULT GETUTCDATE()
+-- ── PredictionResults ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS PredictionResults (
+  Id           SERIAL       PRIMARY KEY,
+  PredictionId INTEGER      REFERENCES Predictions(Id),  -- NULL nếu không dự đoán
+  UserId       INTEGER      NOT NULL REFERENCES Users(Id),
+  MatchId      INTEGER      NOT NULL REFERENCES Matches(Id),
+  IsCorrect    BOOLEAN      NOT NULL DEFAULT FALSE,
+  PointChange  INTEGER      NOT NULL,
+  Reason       VARCHAR(20)  NOT NULL,                    -- 'win' | 'lose' | 'no_prediction'
+  CalculatedAt TIMESTAMP    NOT NULL DEFAULT NOW()
 );
-GO
 
--- ─── SP: sp_SetMatchResult ────────────────────────────────────────────────────
--- Guard niêm phong + tính điểm tự động
-CREATE OR ALTER PROCEDURE sp_SetMatchResult
-  @MatchId   INT,
-  @HomeGoals INT,
-  @AwayGoals INT,
-  @AdminId   INT
-AS
+-- ============================================================
+-- FUNCTION: sp_set_match_result
+-- Niêm phong kết quả + tính điểm tự động
+-- Gọi: SELECT sp_set_match_result(matchId, homeGoals, awayGoals, adminId)
+-- ============================================================
+CREATE OR REPLACE FUNCTION sp_set_match_result(
+  p_match_id   INTEGER,
+  p_home_goals INTEGER,
+  p_away_goals INTEGER,
+  p_admin_id   INTEGER
+) RETURNS VOID AS $$
+DECLARE
+  v_round        VARCHAR(50);
+  v_handicap     NUMERIC(5,2);
+  v_win_pts      INTEGER;
+  v_lose_pts     INTEGER;
+  v_default_pts  INTEGER;
+  v_adj_home     NUMERIC(7,2);
+  v_actual_result VARCHAR(10);
 BEGIN
-  SET NOCOUNT ON;
+  -- Guard: đã niêm phong rồi thì không cho sửa
+  IF EXISTS (SELECT 1 FROM Matches WHERE Id = p_match_id AND ResultLocked = TRUE) THEN
+    RAISE EXCEPTION 'Kết quả đã được niêm phong, không thể thay đổi.';
+  END IF;
 
-  IF EXISTS (SELECT 1 FROM Matches WHERE Id=@MatchId AND ResultLocked=1)
-  BEGIN
-    RAISERROR(N'Kết quả đã được niêm phong, không thể thay đổi.', 16, 1);
-    RETURN;
-  END
+  SELECT Round, COALESCE(Handicap, 0)
+  INTO v_round, v_handicap
+  FROM Matches WHERE Id = p_match_id;
 
-  DECLARE @Round    NVARCHAR(50), @Handicap FLOAT;
-  SELECT @Round=Round, @Handicap=Handicap FROM Matches WHERE Id=@MatchId;
-
-  DECLARE @WinPts INT, @LosePts INT, @DefaultPts INT;
-  SELECT @WinPts=WinPoints, @LosePts=LosePoints, @DefaultPts=DefaultLosePoints
-  FROM BetRules WHERE Round=@Round;
+  SELECT
+    COALESCE(WinPoints, 3),
+    COALESCE(LosePoints, 1),
+    COALESCE(DefaultLosePoints, 2)
+  INTO v_win_pts, v_lose_pts, v_default_pts
+  FROM BetRules WHERE Round = v_round;
 
   -- Fallback nếu BetRules chưa có vòng này
-  SET @WinPts     = ISNULL(@WinPts, 3);
-  SET @LosePts    = ISNULL(@LosePts, 1);
-  SET @DefaultPts = ISNULL(@DefaultPts, 2);
+  v_win_pts     := COALESCE(v_win_pts, 3);
+  v_lose_pts    := COALESCE(v_lose_pts, 1);
+  v_default_pts := COALESCE(v_default_pts, 2);
 
-  DECLARE @AdjHome    FLOAT     = @HomeGoals + ISNULL(@Handicap, 0);
-  DECLARE @ActualResult NVARCHAR(10) =
-    CASE WHEN @AdjHome > @AwayGoals THEN 'home'
-         WHEN @AdjHome < @AwayGoals THEN 'away'
-         ELSE 'draw' END;
-
-  BEGIN TRANSACTION;
+  v_adj_home := p_home_goals + v_handicap;
+  v_actual_result :=
+    CASE
+      WHEN v_adj_home > p_away_goals THEN 'home'
+      WHEN v_adj_home < p_away_goals THEN 'away'
+      ELSE 'draw'
+    END;
 
   -- Niêm phong kết quả
   UPDATE Matches
-  SET HomeGoals=@HomeGoals, AwayGoals=@AwayGoals, Status='FT',
-      IsLocked=1, ResultLocked=1, ResultSetAt=GETUTCDATE(), ResultSetBy=@AdminId
-  WHERE Id=@MatchId;
+  SET HomeGoals    = p_home_goals,
+      AwayGoals    = p_away_goals,
+      Status       = 'FT',
+      IsLocked     = TRUE,
+      ResultLocked = TRUE,
+      ResultSetAt  = NOW(),
+      ResultSetBy  = p_admin_id
+  WHERE Id = p_match_id;
 
   -- Tính điểm người đã dự đoán
   INSERT INTO PredictionResults (PredictionId, UserId, MatchId, IsCorrect, PointChange, Reason)
-  SELECT p.Id, p.UserId, @MatchId,
-    CASE WHEN p.Choice=@ActualResult THEN 1 ELSE 0 END,
-    CASE WHEN p.Choice=@ActualResult THEN @WinPts ELSE -@LosePts END,
-    CASE WHEN p.Choice=@ActualResult THEN 'win' ELSE 'lose' END
-  FROM Predictions p WHERE p.MatchId=@MatchId;
+  SELECT
+    p.Id,
+    p.UserId,
+    p_match_id,
+    (p.Choice = v_actual_result),
+    CASE WHEN p.Choice = v_actual_result THEN v_win_pts ELSE -v_lose_pts END,
+    CASE WHEN p.Choice = v_actual_result THEN 'win' ELSE 'lose' END
+  FROM Predictions p
+  WHERE p.MatchId = p_match_id;
 
   -- Cập nhật Points user đã dự đoán
-  UPDATE u SET u.Points = u.Points + r.PointChange
-  FROM Users u
-  JOIN PredictionResults r ON r.UserId=u.Id
-  WHERE r.MatchId=@MatchId
-    AND r.CalculatedAt > DATEADD(SECOND,-5,GETUTCDATE());
+  UPDATE Users u
+  SET Points = u.Points + r.PointChange
+  FROM PredictionResults r
+  WHERE r.UserId   = u.Id
+    AND r.MatchId  = p_match_id
+    AND r.CalculatedAt >= NOW() - INTERVAL '5 seconds';
 
   -- Trừ điểm người KHÔNG dự đoán
   INSERT INTO PredictionResults (PredictionId, UserId, MatchId, IsCorrect, PointChange, Reason)
-  SELECT NULL, u.Id, @MatchId, 0, -@DefaultPts, 'no_prediction'
+  SELECT NULL, u.Id, p_match_id, FALSE, -v_default_pts, 'no_prediction'
   FROM Users u
-  WHERE u.Role='user' AND u.IsActive=1
-    AND u.Id NOT IN (SELECT UserId FROM Predictions WHERE MatchId=@MatchId);
+  WHERE u.Role     = 'user'
+    AND u.IsActive = TRUE
+    AND u.Id NOT IN (SELECT UserId FROM Predictions WHERE MatchId = p_match_id);
 
-  UPDATE u SET u.Points = u.Points - @DefaultPts
-  FROM Users u
-  WHERE u.Role='user' AND u.IsActive=1
-    AND u.Id NOT IN (SELECT UserId FROM Predictions WHERE MatchId=@MatchId);
+  UPDATE Users u
+  SET Points = u.Points - v_default_pts
+  WHERE u.Role     = 'user'
+    AND u.IsActive = TRUE
+    AND u.Id NOT IN (SELECT UserId FROM Predictions WHERE MatchId = p_match_id);
 
-  COMMIT;
 END;
-GO
+$$ LANGUAGE plpgsql;
 
--- ─── SP: sp_AutoLockMatches ───────────────────────────────────────────────────
-CREATE OR ALTER PROCEDURE sp_AutoLockMatches AS
+-- ============================================================
+-- FUNCTION: sp_auto_lock_matches
+-- Khóa trận trước 30 phút thi đấu
+-- Gọi: SELECT sp_auto_lock_matches()
+-- ============================================================
+CREATE OR REPLACE FUNCTION sp_auto_lock_matches()
+RETURNS VOID AS $$
 BEGIN
   UPDATE Matches
-  SET IsLocked=1, LockedAt=GETUTCDATE()
-  WHERE IsLocked=0 AND ResultLocked=0
-    AND DATEDIFF(MINUTE, GETUTCDATE(), MatchDate) <= 30;
+  SET IsLocked = TRUE,
+      LockedAt = NOW()
+  WHERE IsLocked     = FALSE
+    AND ResultLocked = FALSE
+    AND MatchDate - NOW() <= INTERVAL '30 minutes';
 END;
-GO
+$$ LANGUAGE plpgsql;
+
+-- ── Admin mặc định (password: admin123) ───────────────────────────────────
+INSERT INTO Users (Username, PasswordHash, FullName, Role)
+VALUES (
+  'admin',
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVwB01DBi2',
+  'Administrator',
+  'admin'
+) ON CONFLICT (Username) DO NOTHING;

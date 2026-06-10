@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ROUNDS } from "../constants";
 import { C } from "../styles/theme";
-import { fmtDate, fmtMoney } from "../utils/helpers";
+import { fmtDate, fmtMoney, getMatchResult } from "../utils/helpers";
 
 // ─── PAGE HISTORY ─────────────────────────────────────────────────────────────
 
@@ -50,8 +50,8 @@ export default function PageHistory({
       {myLbEntry && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ overflowX: "auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "140px repeat(5,1fr)", minWidth: 560 }}>
-              {["Vòng đấu", "Đúng", "Sai", "Không cá", "Điểm"].map(h => (
+            <div style={{ display: "grid", gridTemplateColumns: "140px repeat(4,1fr)", minWidth: 520 }}>
+              {["Vòng đấu", "Thắng", "Thua", "Không cá", "Điểm"].map(h => (
                 <div key={h} style={{ fontFamily: "Barlow Condensed", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: C.goldDim, padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
                   {h}
                 </div>
@@ -121,11 +121,26 @@ export default function PageHistory({
                         </div>
                       </div>
                     )}
+                    {p.match.resultLocked && !isNP && (() => {
+                      const actualResult = getMatchResult(p.match.homeGoals, p.match.awayGoals, p.match.handicap);
+                      // actualResult null = hòa kèo → không ai thắng → Thua hết
+                      const isCorrect = actualResult !== null && p.choice === actualResult;
+                      return (
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 2 }}>Kết quả</div>
+                          {isCorrect
+                            ? <span className="badge badge-money-win">✓ Thắng</span>
+                            : <span className="badge badge-money-lose">✗ Thua</span>}
+                        </div>
+                      );
+                    })()}
                     {r
-                      ? <span className={`badge ${r.reason === "win" ? "badge-money-win" : "badge-money-lose"}`}>
+                      ? <span className={`badge ${r.reason === "win" ? "badge-money-win" : r.reason === "no_prediction" ? "badge-no-pred" : "badge-money-lose"}`}>
                           {r.reason === "win" ? "✓" : r.reason === "no_prediction" ? "⊘" : "✗"} {fmtMoney(r.pointChange ?? r.moneyChange)}
                         </span>
-                      : <span className="badge badge-pending">⏳ Chờ</span>}
+                      : p.match.resultLocked
+                        ? <span className="badge badge-pending">⏳ Đang tính...</span>
+                        : <span className="badge badge-pending">⏳ Chờ</span>}
                   </div>
                 </div>
               );

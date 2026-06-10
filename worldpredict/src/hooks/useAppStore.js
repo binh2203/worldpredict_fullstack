@@ -145,7 +145,10 @@ export function useAppStore() {
     }
     if (match.resultLocked) { showToast("Kết quả đã được niêm phong", "error"); return; }
 
-    if (!USE_MOCK && backendMode) {
+    // Trận test/mock (id >= 7000) → luôn local, không gọi backend
+    const isTestMatch = matchId >= 7000;
+
+    if (!USE_MOCK && backendMode && !isTestMatch) {
       try {
         const res = await api.predict(matchId, choice);
         showToast(res.message || "Dự đoán đã lưu ✓");
@@ -154,7 +157,7 @@ export function useAppStore() {
       } catch (e) { showToast(e.message, "error"); }
       return;
     }
-    // Mock / Test mode
+    // Mock / Test mode (hoặc trận test inject)
     const existing = predictions.findIndex(p => p.userId === currentUser.id && p.matchId === matchId);
     const pred = { id: Date.now(), userId: currentUser.id, matchId, choice, createdAt: new Date().toISOString() };
     const np = [...predictions];
@@ -171,18 +174,20 @@ export function useAppStore() {
     if (!match) return;
     if (match.resultLocked) { showToast("❌ Kết quả đã niêm phong!", "error"); return; }
 
-    if (!USE_MOCK && backendMode) {
+    // Trận test/mock (id >= 7000) → luôn local
+    const isTestMatch = matchId >= 7000;
+
+    if (!USE_MOCK && backendMode && !isTestMatch) {
       try {
         await api.setResult(matchId, hg, ag);
         showToast("✅ Kết quả đã lưu và niêm phong!", "success");
         setModal(null);
         setMatches(await api.getMatches());
-        // Refresh leaderboard qua users
         setUsers(await api.getUsers());
       } catch (e) { showToast(e.message, "error"); }
       return;
     }
-    // Mock / Test mode
+    // Mock / Test mode (hoặc trận test inject)
     const updated = { ...match, homeGoals: hg, awayGoals: ag, status: "FT", isLocked: true, resultLocked: true, resultSetAt: new Date().toISOString() };
     setMatches(p => p.map(m => m.id === matchId ? updated : m));
     setTimeout(() => calculateResults(matchId, hg, ag, match.handicap, match.round), 300);
@@ -281,6 +286,23 @@ export function useAppStore() {
     showToast("Test Scenario đã được xóa", "info");
   }
 
+  // ── Inject / eject trận test từ PageTest ────────────────────────────────────
+  function injectTestMatches(newMatches) {
+    // Xoá trận cũ có cùng ID trước, rồi thêm mới
+    setMatches(prev => {
+      const ids = new Set(newMatches.map(m => m.id));
+      return [...prev.filter(m => !ids.has(m.id)), ...newMatches];
+    });
+  }
+
+  function ejectTestMatches(ids) {
+    if (!ids?.length) return;
+    const idSet = new Set(ids);
+    setMatches(prev => prev.filter(m => !idSet.has(m.id)));
+    setPredictions(prev => prev.filter(p => !idSet.has(p.matchId)));
+    setPredResults(prev => prev.filter(r => !idSet.has(r.matchId)));
+  }
+
   // ── Leaderboard ─────────────────────────────────────────────────────────────
   const leaderboard = useMemo(() => {
     return users.filter(u => u.role === "user").map(u => {
@@ -336,6 +358,7 @@ export function useAppStore() {
     doLogin, doLogout,
     doPredict, doSetResult, doSetHandicap, doCreateUser,
     doLoadTestScenario, doClearTestScenario,
+    injectTestMatches, ejectTestMatches,
     getUserPred,
   };
 }

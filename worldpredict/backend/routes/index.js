@@ -1,136 +1,52 @@
 const router = require("express").Router();
-const {
-  authMiddleware,
-  adminOnly,
-} = require("../middleware/auth");
+const { authMiddleware, adminOnly } = require("../middleware/auth");
 
-const authCtrl = require("../controllers/authController");
-const matchesCtrl = require("../controllers/matchesController");
+const authCtrl        = require("../controllers/authController");
+const matchesCtrl     = require("../controllers/matchesController");
 const predictionsCtrl = require("../controllers/predictionsController");
-const usersCtrl = require("../controllers/usersController");
-const betRulesCtrl = require("../controllers/betRulesController");
-const wcCtrl = require("../controllers/wcController");
-const {
-  syncFromZafronix,
-} = require("../services/syncFixtures");
+const usersCtrl       = require("../controllers/usersController");
+const betRulesCtrl    = require("../controllers/betRulesController");
+const wcCtrl          = require("../controllers/wcController");       // ← Zafronix
+const { syncFromZafronix } = require("../services/syncFixtures");   // ← sync job
 
-// ─── AUTH ─────────────────────────────────────
-router.post("/auth/login", authCtrl.login);
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+router.post("/auth/login",    authCtrl.login);
+// register bị tắt — tài khoản do admin tạo
 
-// ─── MATCHES ──────────────────────────────────
-router.get("/matches", matchesCtrl.getMatches);
+// ─── MATCHES ──────────────────────────────────────────────────────────────────
+router.get ("/matches",              matchesCtrl.getMatches);
+router.put ("/matches/:id/handicap", authMiddleware, adminOnly, matchesCtrl.setHandicap);
+router.post("/matches/:id/result",   authMiddleware, adminOnly, matchesCtrl.setResult);
+router.post("/matches/auto-lock",    authMiddleware, adminOnly, matchesCtrl.autoLock);
 
-router.put(
-  "/matches/:id/handicap",
-  authMiddleware,
-  adminOnly,
-  matchesCtrl.setHandicap
-);
+// ─── PREDICTIONS ──────────────────────────────────────────────────────────────
+router.get ("/predictions/my",  authMiddleware, predictionsCtrl.getMyPredictions);
+router.get ("/predictions/all", authMiddleware, adminOnly, predictionsCtrl.getAllPredictions);
+router.post("/predictions",     authMiddleware, predictionsCtrl.predict);
 
-router.post(
-  "/matches/:id/result",
-  authMiddleware,
-  adminOnly,
-  matchesCtrl.setResult
-);
+// ─── BET RULES ────────────────────────────────────────────────────────────────
+router.get("/betrules",  betRulesCtrl.getBetRules);
+router.put("/betrules",  authMiddleware, adminOnly, betRulesCtrl.saveBetRule);
 
-router.post(
-  "/matches/auto-lock",
-  authMiddleware,
-  adminOnly,
-  matchesCtrl.autoLock
-);
+// ─── USERS ────────────────────────────────────────────────────────────────────
+router.get ("/users",                   authMiddleware, adminOnly, usersCtrl.getUsers);
+router.get ("/users/my-stats",          authMiddleware, usersCtrl.getMyStats);
+router.post("/users",                   authMiddleware, adminOnly, usersCtrl.createUser);
+router.put ("/users/:id/toggle-active", authMiddleware, adminOnly, usersCtrl.toggleUserActive);
 
-// ─── PREDICTIONS ──────────────────────────────
-router.get(
-  "/predictions/my",
-  authMiddleware,
-  predictionsCtrl.getMyPredictions
-);
+// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
+router.get("/leaderboard", usersCtrl.getLeaderboard);
 
-router.get(
-  "/predictions/all",
-  authMiddleware,
-  adminOnly,
-  predictionsCtrl.getAllPredictions
-);
+// ─── WC FIXTURES (Zafronix) ───────────────────────────────────────────────────
+// GET /api/wc-fixtures          → frontend PageHome dùng cho stats vòng bảng
+// GET /api/wc-fixtures?round=XX → filter theo vòng
+router.get("/wc-fixtures", wcCtrl.getWcFixtures);
 
-router.post(
-  "/predictions",
-  authMiddleware,
-  predictionsCtrl.predict
-);
-
-// ─── BET RULES ────────────────────────────────
-router.get("/betrules", betRulesCtrl.getBetRules);
-
-router.put(
-  "/betrules",
-  authMiddleware,
-  adminOnly,
-  betRulesCtrl.saveBetRule
-);
-
-// ─── USERS ────────────────────────────────────
-router.get(
-  "/users",
-  authMiddleware,
-  adminOnly,
-  usersCtrl.getUsers
-);
-
-router.get(
-  "/users/my-stats",
-  authMiddleware,
-  usersCtrl.getMyStats
-);
-
-router.post(
-  "/users",
-  authMiddleware,
-  adminOnly,
-  usersCtrl.createUser
-);
-
-router.put(
-  "/users/:id/toggle-active",
-  authMiddleware,
-  adminOnly,
-  usersCtrl.toggleUserActive
-);
-
-// ─── LEADERBOARD ──────────────────────────────
-router.get(
-  "/leaderboard",
-  usersCtrl.getLeaderboard
-);
-
-// ─── WC FIXTURES ──────────────────────────────
-router.get(
-  "/wc-fixtures",
-  wcCtrl.getWcFixtures
-);
-
-// ─── SYNC FIXTURES (ADMIN) ────────────────────
-router.post(
-  "/admin/sync-fixtures",
-  authMiddleware,
-  adminOnly,
-  async (req, res) => {
-    try {
-      const result = await syncFromZafronix();
-
-      res.json({
-        message: `Sync xong: ${result.inserted} mới, ${result.updated} cập nhật`,
-        ...result,
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({
-        message: "Sync thất bại",
-      });
-    }
-  }
-);
+// ─── SYNC FIXTURES (admin trigger thủ công) ───────────────────────────────────
+// POST /api/admin/sync-fixtures → kéo Zafronix về DB ngay lập tức
+router.post("/admin/sync-fixtures", authMiddleware, adminOnly, async (req, res) => {
+  const result = await syncFromZafronix();
+  res.json({ message: `Sync xong: ${result.inserted} mới, ${result.updated} cập nhật`, ...result });
+});
 
 module.exports = router;

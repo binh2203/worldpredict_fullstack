@@ -1,6 +1,6 @@
 // ─── APP CONSTANTS ────────────────────────────────────────────────────────────
 
-export const API_URL = "http://localhost:5000/api";
+export const API_URL = import.meta.env.VITE_API_URL || "/api";
 export const LOCK_BEFORE_MINUTES = 30;
 export const USE_MOCK = false;
 

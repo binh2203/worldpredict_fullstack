@@ -11,6 +11,7 @@ import PageMatches     from "./pages/PageMatches";
 import PageLeaderboard from "./pages/PageLeaderboard";
 import PageHistory     from "./pages/PageHistory";
 import PageAdmin       from "./pages/PageAdmin";
+import PageTest        from "./pages/PageTest";
 
 export default function App() {
   const store = useAppStore();
@@ -30,6 +31,7 @@ export default function App() {
     doPredict, doSetResult, doSetHandicap,
     doCreateUser,
     doLoadTestScenario, doClearTestScenario,
+    injectTestMatches, ejectTestMatches,
     getUserPred,
   } = store;
 
@@ -74,6 +76,22 @@ export default function App() {
               currentUser={currentUser} predictions={predictions}
               matches={matches} predResults={predResults}
               myLbEntry={myLbEntry} setModal={setModal}
+            />
+          )}
+          {page === "test" && (
+            <PageTest
+              currentUser={currentUser}
+              betRules={betRules}
+              predResults={predResults}
+              predResultsGlobal={predResults}
+              predictions={predictions}
+              matches={matches}
+              doPredictOverride={doPredict}
+              setModal={setModal}
+              doSetResult={doSetResult}
+              showToast={showToast}
+              injectTestMatches={injectTestMatches}
+              ejectTestMatches={ejectTestMatches}
             />
           )}
           {page === "admin" && (

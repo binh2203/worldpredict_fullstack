@@ -1,15 +1,9 @@
+// ─── Global error handler ─────────────────────────────────────────────────────
+// Đặt sau tất cả routes trong server.js
 function errorHandler(err, req, res, next) {
-  console.error("❌ Error:", err);
-
-  const status = err.status || err.statusCode || 500;
-
-  // tránh leak stack trace ra client (production best practice)
-  const message =
-    err.message || "Lỗi server nội bộ";
-
-  res.status(status).json({
-    message,
-  });
+  console.error("❌ Error:", err.message);
+  const status = err.status || 500;
+  res.status(status).json({ message: err.message || "Lỗi server nội bộ" });
 }
 
 module.exports = errorHandler;
