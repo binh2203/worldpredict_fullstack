@@ -100,7 +100,7 @@ export default function MatchCard({
           {m.handicap > 0 ? `chấp ${m.handicap}` : `nhận ${Math.abs(m.handicap)}`} trái
           {isDone && actualResult && (
             <span style={{ marginLeft: 8, color: C.gold }}>
-              → {actualResult === "home" ? "🏠 Nhà thắng kèo" : actualResult === "away" ? "✈️ Khách thắng kèo" : "🤝 Hòa kèo (không ai thắng)"}
+              → {actualResult === "home" ? `🏠 ${m.homeTeam?.name} thắng kèo` : actualResult === "away" ? `✈️ ${m.awayTeam?.name} thắng kèo` : "🤝 Hòa kèo (không ai thắng)"}
             </span>
           )}
         </div>
@@ -123,8 +123,8 @@ export default function MatchCard({
             {isLocked ? "🔒 Đã khóa dự đoán" : hasHcap ? "Dự đoán kèo chấp" : "Dự đoán kết quả"}
           </div>
           <div className="pred-opts">
-            <ChoiceBtn value="home" label={hasHcap ? "Nhà Thắng Kèo" : "🏠 Nhà Thắng"} />
-<ChoiceBtn value="away" label={hasHcap ? "Khách Thắng Kèo" : "✈️ Khách Thắng"} />
+            <ChoiceBtn value="home" label={hasHcap ? `${m.homeTeam?.name} Thắng Kèo` : `🏠 ${m.homeTeam?.name}`} />
+<ChoiceBtn value="away" label={hasHcap ? `${m.awayTeam?.name} Thắng Kèo` : `✈️ ${m.awayTeam?.name}`} />
           </div>
         </div>
       )}
@@ -134,7 +134,7 @@ export default function MatchCard({
         <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 7, flexWrap: "wrap", gap: 8 }}>
           <span style={{ fontSize: 12, color: C.textDim }}>
             Dự đoán: <b style={{ color: C.text }}>
-              {myPred.choice === "home" ? "🏠 Nhà thắng" : "✈️ Khách thắng"}
+              {myPred.choice === "home" ? `🏠 ${m.homeTeam?.name}` : `✈️ ${m.awayTeam?.name}`}
             </b>
           </span>
           {myResult
