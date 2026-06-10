@@ -17,15 +17,46 @@ const PORT = process.env.PORT || 5000;
 
 
 // ─────────────────────────────────────────────
-// CORS (production safe)
+// TRUST PROXY (Render / Netlify fix CORS issues)
 // ─────────────────────────────────────────────
+app.set("trust proxy", 1);
+
+
+// ─────────────────────────────────────────────
+// CORS FIX (IMPORTANT - FULL PRODUCTION SAFE)
+// ─────────────────────────────────────────────
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "https://worldpredict.netlify.app"
+];
+
 app.use(cors({
-  origin: [
-    process.env.CLIENT_URL,
-    "http://localhost:5173"
-  ],
+  origin: function (origin, callback) {
+    // allow mobile apps / server-to-server (no origin)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // allow vercel / netlify preview
+    if (origin.endsWith(".netlify.app") || origin.endsWith(".vercel.app")) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Blocked by CORS: " + origin));
+  },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+
+// ─────────────────────────────────────────────
+// PRE-FLIGHT FIX (CRITICAL)
+// ─────────────────────────────────────────────
+app.options("*", cors());
 
 
 app.use(express.json());
@@ -40,13 +71,9 @@ app.get("/health", (req, res) =>
 
 
 // ─────────────────────────────────────────────
-// API ROUTES (ONLY 1 SOURCE OF TRUTH)
+// API ROUTES (ONLY ONE SOURCE OF TRUTH)
 // ─────────────────────────────────────────────
 app.use("/api", routes);
-
-
-// ❌ REMOVE THIS (IMPORTANT)
-// app.use("/api/wc", require("./routes/wcRoutes"));
 
 
 // ─────────────────────────────────────────────
@@ -56,9 +83,10 @@ app.use(errorHandler);
 
 
 // ─────────────────────────────────────────────
-// FRONTEND SERVE (VITE / NETLIFY BUILD COPY)
+// SERVE FRONTEND BUILD
+// (Nếu backend & frontend chung repo)
 // ─────────────────────────────────────────────
-const frontendDist = path.join(__dirname, "../frontend/dist");
+const frontendDist = path.join(__dirname, "../dist");
 
 app.use(express.static(frontendDist));
 
@@ -68,7 +96,7 @@ app.get("*", (req, res) => {
 
 
 // ─────────────────────────────────────────────
-// AUTO-LOCK JOB (30s)
+// AUTO LOCK JOB
 // ─────────────────────────────────────────────
 async function startAutoLockJob() {
   try {
