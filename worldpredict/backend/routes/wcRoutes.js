@@ -7,7 +7,7 @@ const { authMiddleware, adminOnly } = require("../middleware/auth");
 const wcCtrl = require("../controllers/wcController");
 
 // Service sync (giữ nếu bạn cần sync riêng service này)
-const { fetchAndSync } = require("../services/syncService");
+const { fetchAndSync, syncHandicapsManual } = require("../services/syncService");
 
 
 // ─────────────────────────────────────────────
@@ -41,6 +41,29 @@ router.post(
         message: "Sync thất bại",
         error: err.message
       });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────
+// ADMIN: Manual sync handicaps from OddsAPI
+// ─────────────────────────────────────────────
+// POST /api/admin/sync-odds
+router.post(
+  "/admin/sync-odds",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const result = await syncHandicapsManual();
+      res.json({
+        message: "Sync kèo chấp hoàn tất",
+        updated: result.updated,
+        message2: result.message,
+      });
+    } catch (err) {
+      console.error("[ODDS SYNC ERROR]", err);
+      res.status(502).json({ message: "Sync kèo thất bại", error: err.message });
     }
   }
 );
