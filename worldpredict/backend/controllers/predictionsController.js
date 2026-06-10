@@ -50,8 +50,8 @@ async function predict(req, res) {
   if (match.resultlocked) return res.status(400).json({ message: "Kết quả đã niêm phong" });
 
   const msUntilMatch = new Date(match.matchdate) - Date.now();
-  if (match.islocked || msUntilMatch <= 30 * 60 * 1000) {
-    return res.status(400).json({ message: "Trận đã bị khóa dự đoán (trước 30 phút)" });
+  if (match.islocked || msUntilMatch <= 10 * 60 * 1000) {
+    return res.status(400).json({ message: "Trận đã bị khóa dự đoán (trước 10 phút)" });
   }
 
   // Upsert prediction
