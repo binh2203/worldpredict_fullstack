@@ -109,7 +109,8 @@ async function startSyncJob() {
       `📡 Initial sync: ${r.inserted} inserted, ${r.updated} updated`
     );
   } catch (e) {
-    console.warn("⚠️ Initial sync failed:", e.message);
+    console.error("❌ Initial sync failed FULL ERROR:");
+    console.error(e);
   }
 
   const interval =
