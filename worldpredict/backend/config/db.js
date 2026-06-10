@@ -1,27 +1,21 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
-// ─── POSTGRES CONFIG (SUPABASE) ─────────────────────────────
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// ─── LOG INIT ───────────────────────────────────────────────
-console.log("🟢 PostgreSQL pool created");
-
-// ─── QUERY HELPER ───────────────────────────────────────────
-async function query(text, params) {
-  return pool.query(text, params);
+function getPool() {
+  return pool;
 }
 
-// ─── CLOSE POOL ─────────────────────────────────────────────
-async function closePool() {
-  await pool.end();
+function closePool() {
+  return pool.end();
 }
 
 module.exports = {
+  getPool,
   pool,
-  query,
   closePool,
 };
