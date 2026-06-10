@@ -348,6 +348,28 @@ export function useAppStore() {
   const getUserPred = (matchId) =>
     predictions.find(p => p.userId === currentUser?.id && p.matchId === matchId);
 
+  async function doChangePassword(currentPassword, newPassword) {
+    if (!USE_MOCK) {
+      try {
+        const res = await api.changePassword(currentPassword, newPassword);
+        showToast(res.message || "Đổi mật khẩu thành công", "success");
+        return true;
+      } catch (e) {
+        showToast(e.message || "Đổi mật khẩu thất bại", "error");
+        return false;
+      }
+    }
+    // Mock mode
+    const u = users.find(x => x.id === currentUser?.id);
+    if (!u || u.password !== currentPassword) {
+      showToast("Mật khẩu hiện tại không đúng", "error");
+      return false;
+    }
+    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, password: newPassword } : x));
+    showToast("Đổi mật khẩu thành công", "success");
+    return true;
+  }
+
   return {
     page, setPage, currentUser, setCurrentUser,
     matches, setMatches, predictions, users, setUsers,
@@ -360,5 +382,6 @@ export function useAppStore() {
     doLoadTestScenario, doClearTestScenario,
     injectTestMatches, ejectTestMatches,
     getUserPred,
+    doChangePassword,
   };
 }

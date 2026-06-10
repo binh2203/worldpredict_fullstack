@@ -53,7 +53,12 @@ const api = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
-
+  
+   changePassword: (currentPassword, newPassword) =>
+    api.call("/auth/change-password", { 
+      method: "PUT", 
+      body: JSON.stringify({ currentPassword, newPassword }) 
+    }),
   // ─────────────────────────────────────────────────────────────
   // MATCHES
   // ─────────────────────────────────────────────────────────────

@@ -82,18 +82,6 @@ app.use("/api", routes);
 app.use(errorHandler);
 
 
-// ─────────────────────────────────────────────
-// SERVE FRONTEND BUILD
-// (Nếu backend & frontend chung repo)
-// ─────────────────────────────────────────────
-const frontendDist = path.join(__dirname, "../dist");
-
-app.use(express.static(frontendDist));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendDist, "index.html"));
-});
-
 
 // ─────────────────────────────────────────────
 // AUTO LOCK JOB

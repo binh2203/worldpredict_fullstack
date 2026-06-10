@@ -12,6 +12,7 @@ import PageLeaderboard from "./pages/PageLeaderboard";
 import PageHistory     from "./pages/PageHistory";
 import PageAdmin       from "./pages/PageAdmin";
 import PageTest        from "./pages/PageTest";
+import PageChangePassword from "./pages/PageChangePassword";
 
 export default function App() {
   const store = useAppStore();
@@ -30,6 +31,7 @@ export default function App() {
     doLogin, doLogout,
     doPredict, doSetResult, doSetHandicap,
     doCreateUser,
+    doChangePassword,
     doLoadTestScenario, doClearTestScenario,
     injectTestMatches, ejectTestMatches,
     getUserPred,
@@ -92,6 +94,13 @@ export default function App() {
               showToast={showToast}
               injectTestMatches={injectTestMatches}
               ejectTestMatches={ejectTestMatches}
+            />
+          )}
+          {page === "change-password" && (
+            <PageChangePassword
+              currentUser={currentUser}
+              doChangePassword={doChangePassword}
+              setPage={setPage}
             />
           )}
           {page === "admin" && (

@@ -48,6 +48,7 @@ export default function Navbar({ page, setPage, currentUser, doLogout, setModal 
                     : `${(currentUser.points || 0) >= 0 ? "+" : ""}${(currentUser.points || 0) + " điểm"}`}
                 </div>
               </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setPage("change-password")} style={{ marginRight: 4 }}>🔑 Đổi mật khẩu</button>
               <button className="btn btn-ghost btn-sm" onClick={doLogout}>Đăng xuất</button>
             </>
           ) : (
