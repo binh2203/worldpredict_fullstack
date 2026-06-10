@@ -4,11 +4,10 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
     // Proxy API calls đến backend trong dev mode
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://worldpredict-backend.onrender.com",
         changeOrigin: true,
       },
     },
