@@ -286,22 +286,6 @@ export function useAppStore() {
     showToast("Test Scenario đã được xóa", "info");
   }
 
-  // ── Inject / eject trận test từ PageTest ────────────────────────────────────
-  function injectTestMatches(newMatches) {
-    // Xoá trận cũ có cùng ID trước, rồi thêm mới
-    setMatches(prev => {
-      const ids = new Set(newMatches.map(m => m.id));
-      return [...prev.filter(m => !ids.has(m.id)), ...newMatches];
-    });
-  }
-
-  function ejectTestMatches(ids) {
-    if (!ids?.length) return;
-    const idSet = new Set(ids);
-    setMatches(prev => prev.filter(m => !idSet.has(m.id)));
-    setPredictions(prev => prev.filter(p => !idSet.has(p.matchId)));
-    setPredResults(prev => prev.filter(r => !idSet.has(r.matchId)));
-  }
 
   // ── Leaderboard ─────────────────────────────────────────────────────────────
   const leaderboard = useMemo(() => {

@@ -6,7 +6,6 @@ export default function Navbar({ page, setPage, currentUser, doLogout, setModal 
     { id: "matches",     label: "📅 Lịch đấu" },
     { id: "leaderboard", label: "🏆 Xếp hạng" },
     { id: "history",     label: "📜 Lịch sử" },
-    { id: "test",        label: "🧪 Test" },
     ...(currentUser?.role === "admin" ? [{ id: "admin", label: "👑 Admin" }] : []),
   ];
 

@@ -33,7 +33,6 @@ export default function App() {
     doCreateUser,
     doChangePassword,
     doLoadTestScenario, doClearTestScenario,
-    injectTestMatches, ejectTestMatches,
     getUserPred,
   } = store;
 
@@ -78,22 +77,6 @@ export default function App() {
               currentUser={currentUser} predictions={predictions}
               matches={matches} predResults={predResults}
               myLbEntry={myLbEntry} setModal={setModal}
-            />
-          )}
-          {page === "test" && (
-            <PageTest
-              currentUser={currentUser}
-              betRules={betRules}
-              predResults={predResults}
-              predResultsGlobal={predResults}
-              predictions={predictions}
-              matches={matches}
-              doPredictOverride={doPredict}
-              setModal={setModal}
-              doSetResult={doSetResult}
-              showToast={showToast}
-              injectTestMatches={injectTestMatches}
-              ejectTestMatches={ejectTestMatches}
             />
           )}
           {page === "change-password" && (
