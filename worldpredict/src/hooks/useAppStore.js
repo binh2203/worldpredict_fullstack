@@ -137,33 +137,37 @@ export function useAppStore() {
 
   // ── Predict ─────────────────────────────────────────────────────────────────
   async function doPredict(matchId, choice) {
-    if (!currentUser) { showToast("Vui lòng đăng nhập", "error"); return; }
-    const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-    if (match.isLocked || shouldBeLocked(match.matchDate)) {
-      showToast("🔒 Trận đã bị khóa dự đoán", "error"); return;
-    }
-    if (match.resultLocked) { showToast("Kết quả đã được niêm phong", "error"); return; }
+    try {
+      if (!currentUser) {
+        showToast("Vui lòng đăng nhập", "error");
+        return;
+      }
 
-    // Trận test/mock (id >= 7000) → luôn local, không gọi backend
-    const isTestMatch = matchId >= 7000;
+      const match = matches.find(m => m.id === matchId);
+      if (!match) return;
 
-    if (backendMode && !isTestMatch) {
-      try {
-        const res = await api.predict(matchId, choice);
-        showToast(res.message || "Dự đoán đã lưu ✓");
-        const updated = await api.getPredictions();
-        setPredictions(updated);
-      } catch (e) { showToast(e.message, "error"); }
-      return;
+      if (match.isLocked || shouldBeLocked(match.matchDate)) {
+        showToast("🔒 Trận đã bị khóa dự đoán", "error");
+        return;
+      }
+
+      if (match.resultLocked) {
+        showToast("Kết quả đã được niêm phong", "error");
+        return;
+      }
+
+      // 🔥 GỌI BACKEND TRỰC TIẾP
+      const res = await api.predict(matchId, choice);
+
+      showToast(res.message || "Dự đoán đã lưu ✓");
+
+      // 🔄 refresh predictions từ backend
+      const updated = await api.getPredictions();
+      setPredictions(updated);
+
+    } catch (e) {
+      showToast(e.message || "Lỗi khi gửi dự đoán", "error");
     }
-    // Mock / Test mode (hoặc trận test inject)
-    const existing = predictions.findIndex(p => p.userId === currentUser.id && p.matchId === matchId);
-    const pred = { id: Date.now(), userId: currentUser.id, matchId, choice, createdAt: new Date().toISOString() };
-    const np = [...predictions];
-    if (existing >= 0) np[existing] = pred; else np.push(pred);
-    setPredictions(np);
-    showToast(`Dự đoán "${choice === "home" ? "Nhà thắng" : choice === "away" ? "Khách thắng" : "Hòa"}" đã lưu ✓`);
   }
 
   // ── Set Result ──────────────────────────────────────────────────────────────
