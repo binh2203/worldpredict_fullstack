@@ -8,6 +8,7 @@ const usersCtrl       = require("../controllers/usersController");
 const betRulesCtrl    = require("../controllers/betRulesController");
 const wcCtrl          = require("../controllers/wcController");       // ← Zafronix
 const { syncFromZafronix } = require("../services/syncFixtures");   // ← sync job
+const { syncOdds }         = require("../services/syncOdds");        // ← odds sync
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 router.post("/auth/login",           authCtrl.login);
@@ -48,6 +49,15 @@ router.get("/wc-fixtures", wcCtrl.getWcFixtures);
 router.post("/admin/sync-fixtures", authMiddleware, adminOnly, async (req, res) => {
   const result = await syncFromZafronix();
   res.json({ message: `Sync xong: ${result.inserted} mới, ${result.updated} cập nhật`, ...result });
+});
+
+// POST /api/admin/sync-odds → kéo kèo chấp từ The Odds API ngay lập tức
+router.post("/admin/sync-odds", authMiddleware, adminOnly, async (req, res) => {
+  const result = await syncOdds();
+  res.json({
+    message: `Odds sync xong: ${result.updated} cập nhật, ${result.skipped} không match, ${result.noOdds} chưa có odds`,
+    ...result,
+  });
 });
 
 module.exports = router;
