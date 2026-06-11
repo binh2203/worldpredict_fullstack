@@ -26,21 +26,30 @@ export default function MatchCard({
   const almostLocked  = countdown && parseInt(countdown) <= 60 && !countdown.includes("h");
   const actualResult  = isDone ? getMatchResult(m.homeGoals, m.awayGoals, m.handicap) : null;
 
-  function ChoiceBtn({ value, label }) {
+  function ChoiceBtn({ value, label, logo }) {
     const isSelected = myPred?.choice === value;
-    const cls = `pred-opt${isSelected ? ` ${value}-sel selected` : ""}`;
+    const pointText =
+      rule &&
+      (value === actualResult
+        ? `+${rule.winPoints} điểm`
+        : isDone
+        ? `-${rule.losePoints} điểm`
+        : null);
+
     return (
       <button
-        className={cls}
+        className={`pred-opt${isSelected ? ` ${value}-sel selected` : ""}`}
         disabled={isLocked || !currentUser || currentUser.role === "admin"}
         onClick={() => doPredict(m.id, value)}
       >
-        {label}
-        {rule && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          {logo && <img src={logo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />}
+          <span>{label}</span>
+        </div>
+
+        {pointText && (
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2, fontFamily: "Barlow" }}>
-            {value === actualResult
-              ? `+${rule.winPoints} điểm`
-              : isDone ? `-${rule.losePoints} điểm` : null}
+            {pointText}
           </div>
         )}
       </button>
@@ -61,7 +70,7 @@ export default function MatchCard({
         <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
           {hasHcap && (
             <span className="badge badge-hcap">
-              {m.handicap > 0 ? `Nhà chấp +${m.handicap}` : `Khách chấp ${Math.abs(m.handicap)}`}
+              {m.handicap > 0 ? `${m.homeTeam?.name} chấp +${m.handicap}` : `${m.awayTeam?.name} chấp ${Math.abs(m.handicap)}`}
             </span>
           )}
           {isLive  && <span className="badge badge-live"><span className="live-dot" /> Live</span>}
@@ -109,9 +118,9 @@ export default function MatchCard({
       {/* Bet rule info */}
       {rule && !isDone && !isLocked && (
         <div className="bet-rule-box" style={{ marginTop: 10 }}>
-          💰 {m.round}: thắng{" "}
-          <span style={{ color: C.green }}>+{rule.winPoints} điểm</span> · thua{" "}
-          <span style={{ color: C.red }}>-{rule.losePoints} điểm</span> · không cá{" "}
+          💰 {m.round}: Đoán đúng{" "}
+          <span style={{ color: C.green }}>±{rule.winPoints} điểm</span> · đoán sai{" "}
+          <span style={{ color: C.red }}>-{rule.losePoints} điểm</span> · không đoán{" "}
           <span style={{ color: C.orange }}>-{rule.defaultLosePoints} điểm</span>
         </div>
       )}
@@ -123,8 +132,24 @@ export default function MatchCard({
             {isLocked ? "🔒 Đã khóa dự đoán" : hasHcap ? "Dự đoán kèo chấp" : "Dự đoán kết quả"}
           </div>
           <div className="pred-opts">
-            <ChoiceBtn value="home" label={hasHcap ? `${m.homeTeam?.name} Thắng Kèo` : `🏠 ${m.homeTeam?.name}`} />
-<ChoiceBtn value="away" label={hasHcap ? `${m.awayTeam?.name} Thắng Kèo` : `✈️ ${m.awayTeam?.name}`} />
+            <ChoiceBtn
+              value="home"
+              logo={m.homeTeam?.logo}
+              label={
+                hasHcap
+                  ? `${m.homeTeam?.name} Thắng Kèo`
+                  : m.homeTeam?.name
+              }
+            />
+            <ChoiceBtn
+              value="away"
+              logo={m.awayTeam?.logo}
+              label={
+                hasHcap
+                  ? `${m.awayTeam?.name} Thắng Kèo`
+                  : m.awayTeam?.name
+              }
+            />
           </div>
         </div>
       )}
