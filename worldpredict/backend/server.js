@@ -11,6 +11,7 @@ const routes       = require("./routes/index");
 const errorHandler = require("./middleware/errorHandler");
 
 const { startSyncService } = require("./services/syncService");
+const { syncOdds }         = require("./services/syncOdds");
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -106,6 +107,28 @@ async function startAutoLockJob() {
 
 
 // ─────────────────────────────────────────────
+// ODDS SYNC JOB (Asian Handicap tự động)
+// ─────────────────────────────────────────────
+function startOddsSyncJob() {
+  if (!process.env.ODDS_API_KEY) {
+    console.log("ℹ️  ODDS_API_KEY chưa set → bỏ qua odds sync");
+    return;
+  }
+  const intervalMs = (parseInt(process.env.ODDS_SYNC_INTERVAL_SEC) || 3600) * 1000;
+
+  // Chạy ngay lần đầu
+  syncOdds().catch(e => console.warn("⚠️ Odds sync error:", e.message));
+
+  // Sau đó chạy định kỳ
+  setInterval(() => {
+    syncOdds().catch(e => console.warn("⚠️ Odds sync error:", e.message));
+  }, intervalMs);
+
+  console.log(`⏰ Odds sync job started (mỗi ${intervalMs / 60000} phút)`);
+}
+
+
+// ─────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────
 app.listen(PORT, async () => {
@@ -117,6 +140,7 @@ app.listen(PORT, async () => {
 
     await startAutoLockJob();
     startSyncService();
+    startOddsSyncJob();
 
   } catch (e) {
     console.warn("⚠️ DB not connected at startup:", e.message);
