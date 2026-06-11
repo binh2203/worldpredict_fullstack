@@ -2,7 +2,11 @@ import { LOCK_BEFORE_MINUTES } from "../constants";
 
 // ─── MATCH HELPERS ────────────────────────────────────────────────────────────
 
-/** Áp tỷ lệ kèo chấp → trả "home" | "away" | "home_half" | "away_half" | null */
+/**
+ * Áp tỷ lệ kèo chấp châu Á → trả "home" | "away" | null
+ * Kèo .25/.75 (split): thắng nửa = thắng, thua nửa = thua
+ * null chỉ xảy ra với kèo .00/.50 khi hòa kèo (hoàn tiền)
+ */
 export function applyHandicap(homeGoals, awayGoals, handicap) {
   if (!handicap) {
     if (homeGoals > awayGoals) return "home";
@@ -13,27 +17,21 @@ export function applyHandicap(homeGoals, awayGoals, handicap) {
   const absH = Math.abs(handicap);
   const sign = Math.sign(handicap);
 
-  // Kèo nguyên (.00) hoặc nửa (.50) → tính thẳng
-  if (absH % 0.5 === 0) {
-    const adj = homeGoals + handicap;
-    if (adj > awayGoals) return "home";
-    if (adj < awayGoals) return "away";
-    return null;
+  // Kèo .25/.75 → split 2 dòng, thắng nửa = thắng / thua nửa = thua
+  if (absH % 0.5 !== 0) {
+    const line1 = (Math.floor(absH * 2) / 2) * sign; // VD: -1.25 → -1.00
+    const line2 = (Math.ceil(absH * 2) / 2) * sign;  // VD: -1.25 → -1.50
+    const r1 = homeGoals + line1 > awayGoals ? "home" : "away";
+    const r2 = homeGoals + line2 > awayGoals ? "home" : "away";
+    if (r1 === "home" || r2 === "home") return "home";
+    return "away";
   }
 
-  // Kèo .25 hoặc .75 → split 2 dòng
-  const line1 = (Math.floor(absH * 2) / 2) * sign; // e.g. -1.25 → -1.00
-  const line2 = (Math.ceil(absH * 2) / 2) * sign;  // e.g. -1.25 → -1.50
-
-  const r1 = homeGoals + line1 > awayGoals ? "home"
-           : homeGoals + line1 < awayGoals ? "away" : null;
-  const r2 = homeGoals + line2 > awayGoals ? "home"
-           : homeGoals + line2 < awayGoals ? "away" : null;
-
-  if (r1 === r2) return r1; // thắng/thua hoàn toàn
-  if (r1 === "home" || r2 === "home") return "home_half";
-  if (r1 === "away" || r2 === "away") return "away_half";
-  return null;
+  // Kèo .00/.50 → tính thẳng, có thể hòa kèo
+  const adj = homeGoals + handicap;
+  if (adj > awayGoals) return "home";
+  if (adj < awayGoals) return "away";
+  return null; // hòa kèo → hoàn tiền
 }
 
 /** Kết quả thực tế (có tính kèo nếu có). */
