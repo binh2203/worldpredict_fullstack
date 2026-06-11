@@ -10,9 +10,9 @@ import { DEFAULT_BET_RULES } from "../constants";
 function handicapLabel(m) {
   const h = m.handicap;
   if (h === null || h === undefined) return "";
+
   if (h < 0) return `${m.homeTeam?.name} chấp ${Math.abs(h)}`;
-  if (h > 0) return `${m.awayTeam?.name} chấp ${h}`;
-  return "Kèo bằng (0)";
+  return `${m.awayTeam?.name} chấp ${h}`;
 }
 
 // ─── MATCH CARD ───────────────────────────────────────────────────────────────
@@ -124,9 +124,8 @@ export default function MatchCard({
               →{" "}
               {actualResult === "home"
                 ? `🏠 ${m.homeTeam?.name} thắng kèo`
-                : actualResult === "away"
-                ? `✈️ ${m.awayTeam?.name} thắng kèo`
-                : "🤝 Hòa kèo (không ai thắng)"}
+                : `✈️ ${m.awayTeam?.name} thắng kèo`
+              }
             </span>
           )}
         </div>
