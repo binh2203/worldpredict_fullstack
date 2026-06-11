@@ -51,7 +51,7 @@ export function useAppStore() {
 
   // ── Auto-sync predictions khi backend mode ─────────────────────────────────
   useEffect(() => {
-    if (!USE_MOCK && backendMode && currentUser) {
+    if (backendMode && currentUser) {
       const sync = async () => {
         try {
           const preds = await api.getPredictions();
@@ -148,7 +148,7 @@ export function useAppStore() {
     // Trận test/mock (id >= 7000) → luôn local, không gọi backend
     const isTestMatch = matchId >= 7000;
 
-    if (!USE_MOCK && backendMode && !isTestMatch) {
+    if (backendMode && !isTestMatch) {
       try {
         const res = await api.predict(matchId, choice);
         showToast(res.message || "Dự đoán đã lưu ✓");
@@ -177,7 +177,7 @@ export function useAppStore() {
     // Trận test/mock (id >= 7000) → luôn local
     const isTestMatch = matchId >= 7000;
 
-    if (!USE_MOCK && backendMode && !isTestMatch) {
+    if (backendMode && !isTestMatch) {
       try {
         await api.setResult(matchId, hg, ag);
         showToast("✅ Kết quả đã lưu và niêm phong!", "success");
@@ -236,7 +236,7 @@ export function useAppStore() {
     if (match?.resultLocked) { showToast("Kết quả đã niêm phong", "error"); return; }
     if (match?.isLocked)     { showToast("Trận đã khóa, không thể sửa kèo", "error"); return; }
 
-    if (!USE_MOCK && backendMode) {
+    if (backendMode) {
       try {
         await api.setHandicap(matchId, handicap === "" || handicap === null ? null : parseFloat(handicap));
         setMatches(await api.getMatches());
@@ -253,7 +253,7 @@ export function useAppStore() {
   // ── Create User (admin) ──────────────────────────────────────────────────────
   async function doCreateUser(username, password, fullName, phone) {
     if (!username?.trim() || !password) { showToast("Thiếu thông tin", "error"); return false; }
-    if (!USE_MOCK && backendMode) {
+    if (backendMode) {
       try {
         await api.createUser({ username, password, fullName, phone });
         setUsers(await api.getUsers());
