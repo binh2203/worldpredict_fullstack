@@ -42,7 +42,7 @@ router.get("/leaderboard", usersCtrl.getLeaderboard);
 // ─── WC FIXTURES (Zafronix) ───────────────────────────────────────────────────
 // GET /api/wc-fixtures          → frontend PageHome dùng cho stats vòng bảng
 // GET /api/wc-fixtures?round=XX → filter theo vòng
-router.get("/wc-fixtures", wcCtrl.getWcFixtures);
+router.get("/wc-fixtures", authMiddleware, adminOnly, wcCtrl.getWcFixtures);
 
 // ─── SYNC FIXTURES (admin trigger thủ công) ───────────────────────────────────
 // POST /api/admin/sync-fixtures → kéo Zafronix về DB ngay lập tức
