@@ -8,7 +8,7 @@ export function useAppStore() {
   const [page,         setPage]         = useState("home");
   const [currentUser,  setCurrentUser]  = useState(() => store.get("wp_user", null));
   // ── Khởi tạo matches với mock data luôn — backend sẽ override nếu available ──
-  const [matches,      setMatches]      = useState(() => store.get("wp_matches", null) || makeMockMatches());
+  const [matches,      setMatches]      = useState(() => store.get("wp_matches", null) || []);
   const [predictions,  setPredictions]  = useState(() => store.get("wp_preds",   []));
   const [users,        setUsers]        = useState(() => store.get("wp_users",   [DEFAULT_ADMIN]));
   const [betRules,     setBetRules]     = useState(() => store.get("wp_betrules", DEFAULT_BET_RULES));
