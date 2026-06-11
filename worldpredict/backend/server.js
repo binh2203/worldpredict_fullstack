@@ -140,6 +140,7 @@ app.listen(PORT, async () => {
 
     await startAutoLockJob();
     startSyncService();
+    // startOddsSyncJob();
 
   } catch (e) {
     console.warn("⚠️ DB not connected at startup:", e.message);
