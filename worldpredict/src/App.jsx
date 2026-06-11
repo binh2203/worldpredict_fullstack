@@ -11,7 +11,6 @@ import PageMatches     from "./pages/PageMatches";
 import PageLeaderboard from "./pages/PageLeaderboard";
 import PageHistory     from "./pages/PageHistory";
 import PageAdmin       from "./pages/PageAdmin";
-import PageTest        from "./pages/PageTest";
 import PageChangePassword from "./pages/PageChangePassword";
 
 export default function App() {
