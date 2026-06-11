@@ -23,24 +23,30 @@ export function useAppStore() {
 
   // ── Load backend khi khởi động ─────────────────────────────────────────────
   useEffect(() => {
-  const token = store.get("wp_token", null);
+    const token = store.get("wp_token", null);
+    const user = store.get("wp_user", null);
+
     if (token) {
       api.setToken(token);
     }
-    loadBackendData();
+
+    loadBackendData(user?.role);
   }, []);
 
-  async function loadBackendData() {
+  async function loadBackendData(userRole = null) {
     try {
-      const [matchData, betData, userData] = await Promise.all([
+      const [matchData, betData] = await Promise.all([
         api.getMatches(),
         api.getBetRules(),
-        api.getUsers(),
       ]);
 
       setMatches(matchData || []);
       setBetRules(betData || {});
-      setUsers(userData || []);
+
+      if (userRole === "admin") {
+        const userData = await api.getUsers();
+        setUsers(userData || []);
+      }
 
       setBackendMode(true);
     } catch (e) {
@@ -121,7 +127,7 @@ export function useAppStore() {
       setConfetti(true);
       setTimeout(() => setConfetti(false), 3000);
 
-      await loadBackendData();
+      await loadBackendData(user.role);
 
       return true;
     } catch (e) {
