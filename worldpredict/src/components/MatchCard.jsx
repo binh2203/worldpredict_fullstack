@@ -2,6 +2,19 @@ import { C } from "../styles/theme";
 import { matchStatusType, getMatchResult, fmtDate, fmtTime, fmtDateTime, getCountdown } from "../utils/helpers";
 import { DEFAULT_BET_RULES } from "../constants";
 
+// ─── HANDICAP LABEL HELPER ────────────────────────────────────────────────────
+// Theo OddsAPI: point âm = đội đó chấp (đội mạnh hơn)
+// m.handicap lưu point của home team
+// home < 0 → home chấp away
+// home > 0 → away chấp home
+function handicapLabel(m) {
+  const h = m.handicap;
+  if (h === null || h === undefined) return "";
+  if (h < 0) return `${m.homeTeam?.name} chấp ${Math.abs(h)}`;
+  if (h > 0) return `${m.awayTeam?.name} chấp ${h}`;
+  return "Kèo bằng (0)";
+}
+
 // ─── MATCH CARD ───────────────────────────────────────────────────────────────
 
 export default function MatchCard({
@@ -70,7 +83,7 @@ export default function MatchCard({
         <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
           {hasHcap && (
             <span className="badge badge-hcap">
-              {m.handicap > 0 ? `${m.homeTeam?.name} chấp +${m.handicap}` : `${m.awayTeam?.name} chấp ${Math.abs(m.handicap)}`}
+              {handicapLabel(m)}
             </span>
           )}
           {isLive  && <span className="badge badge-live"><span className="live-dot" /> Live</span>}
@@ -105,11 +118,15 @@ export default function MatchCard({
       {/* Handicap info */}
       {hasHcap && (
         <div className="hcap-box" style={{ marginTop: 10, fontSize: 12 }}>
-          🎲 Kèo: {m.homeTeam?.name}{" "}
-          {m.handicap > 0 ? `chấp ${m.handicap}` : `nhận ${Math.abs(m.handicap)}`} trái
+          🎲 Kèo: {handicapLabel(m)}
           {isDone && actualResult && (
             <span style={{ marginLeft: 8, color: C.gold }}>
-              → {actualResult === "home" ? `🏠 ${m.homeTeam?.name} thắng kèo` : actualResult === "away" ? `✈️ ${m.awayTeam?.name} thắng kèo` : "🤝 Hòa kèo (không ai thắng)"}
+              →{" "}
+              {actualResult === "home"
+                ? `🏠 ${m.homeTeam?.name} thắng kèo`
+                : actualResult === "away"
+                ? `✈️ ${m.awayTeam?.name} thắng kèo`
+                : "🤝 Hòa kèo (không ai thắng)"}
             </span>
           )}
         </div>
@@ -135,20 +152,12 @@ export default function MatchCard({
             <ChoiceBtn
               value="home"
               logo={m.homeTeam?.logo}
-              label={
-                hasHcap
-                  ? `${m.homeTeam?.name} Thắng Kèo`
-                  : m.homeTeam?.name
-              }
+              label={hasHcap ? `${m.homeTeam?.name} Thắng Kèo` : m.homeTeam?.name}
             />
             <ChoiceBtn
               value="away"
               logo={m.awayTeam?.logo}
-              label={
-                hasHcap
-                  ? `${m.awayTeam?.name} Thắng Kèo`
-                  : m.awayTeam?.name
-              }
+              label={hasHcap ? `${m.awayTeam?.name} Thắng Kèo` : m.awayTeam?.name}
             />
           </div>
         </div>
