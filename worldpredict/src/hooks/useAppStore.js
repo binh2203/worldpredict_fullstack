@@ -51,18 +51,34 @@ export function useAppStore() {
 
   // ── Auto-sync predictions khi backend mode ─────────────────────────────────
   useEffect(() => {
-    if (backendMode && currentUser) {
-      const sync = async () => {
-        try {
-          const preds = await api.getPredictions();
-          setPredictions(preds);
-        } catch (_) {}
-      };
-      sync();
-      syncIntervalRef.current = setInterval(sync, 60_000); // mỗi 1 phút
-      return () => clearInterval(syncIntervalRef.current);
-    }
-  }, [backendMode, currentUser]);
+  if (backendMode && currentUser) {
+    const sync = async () => {
+      try {
+        const preds = await api.getPredictions();
+        setPredictions(preds);
+
+        // ← THÊM: map predResults từ backend
+        const results = preds
+          .filter(p => p.result !== null)
+          .map(p => ({
+            id:           p.id,
+            predictionId: p.id,
+            userId:       p.userId,
+            matchId:      p.matchId,
+            isCorrect:    p.result.isCorrect,
+            pointChange:  p.result.pointChange,
+            reason:       p.result.reason,
+            calculatedAt: p.result.calculatedAt,
+          }));
+        setPredResults(results);
+
+      } catch (_) {}
+    };
+    sync();
+    syncIntervalRef.current = setInterval(sync, 60_000);
+    return () => clearInterval(syncIntervalRef.current);
+  }
+}, [backendMode, currentUser]);
 
   // ── Persist mock data vào localStorage ─────────────────────────────────────
   useEffect(() => { if (USE_MOCK) store.set("wp_preds",    predictions); }, [predictions]);
