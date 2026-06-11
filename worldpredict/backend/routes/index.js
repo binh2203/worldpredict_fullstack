@@ -31,7 +31,7 @@ router.get("/betrules",  betRulesCtrl.getBetRules);
 router.put("/betrules",  authMiddleware, adminOnly, betRulesCtrl.saveBetRule);
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
-router.get ("/users",                   authMiddleware, adminOnly, usersCtrl.getUsers);
+router.get ("/users",                   authMiddleware, usersCtrl.getUsers);
 router.get ("/users/my-stats",          authMiddleware, usersCtrl.getMyStats);
 router.post("/users",                   authMiddleware, adminOnly, usersCtrl.createUser);
 router.put ("/users/:id/toggle-active", authMiddleware, adminOnly, usersCtrl.toggleUserActive);

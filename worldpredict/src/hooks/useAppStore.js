@@ -23,30 +23,24 @@ export function useAppStore() {
 
   // ── Load backend khi khởi động ─────────────────────────────────────────────
   useEffect(() => {
-    const token = store.get("wp_token", null);
-    const user = store.get("wp_user", null);
-
+  const token = store.get("wp_token", null);
     if (token) {
       api.setToken(token);
     }
-
-    loadBackendData(user?.role);
+    loadBackendData();
   }, []);
 
-  async function loadBackendData(userRole = null) {
+  async function loadBackendData() {
     try {
-      const [matchData, betData] = await Promise.all([
+      const [matchData, betData, userData] = await Promise.all([
         api.getMatches(),
         api.getBetRules(),
+        api.getUsers(),
       ]);
 
       setMatches(matchData || []);
       setBetRules(betData || {});
-
-      if (userRole === "admin") {
-        const userData = await api.getUsers();
-        setUsers(userData || []);
-      }
+      setUsers(userData || []);
 
       setBackendMode(true);
     } catch (e) {
@@ -85,6 +79,11 @@ export function useAppStore() {
     return () => clearInterval(syncIntervalRef.current);
   }
 }, [backendMode, currentUser]);
+
+  useEffect(() => {
+    if (currentUser) store.set("wp_user", currentUser);
+    else localStorage.removeItem("wp_user");
+  }, [currentUser]);
 
   // ── Auto-lock timer ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -127,7 +126,7 @@ export function useAppStore() {
       setConfetti(true);
       setTimeout(() => setConfetti(false), 3000);
 
-      await loadBackendData(user.role);
+      await loadBackendData();
 
       return true;
     } catch (e) {
