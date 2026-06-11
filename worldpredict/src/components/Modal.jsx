@@ -107,11 +107,7 @@ export default function Modal({ modal, setModal, doLogin, doSetResult, doSetHand
             <div className="hcap-box" style={{ marginBottom: 16 }}>
               Kết quả: {(() => {
                 const r = getMatchResult(parseInt(f.homeGoals), parseInt(f.awayGoals), m.handicap);
-                if (r === "home")      return "🏠 Nhà thắng";
-                if (r === "away")      return "✈️ Khách thắng";
-                if (r === "home_half") return "🏠½ Nhà thắng nửa";
-                if (r === "away_half") return "✈️½ Khách thắng nửa";
-                return "🤝 Hòa kèo (hoàn tiền)";
+                return r === "home" ? "🏠 Nhà thắng" : r === "away" ? "✈️ Khách thắng" : "🤝 Hòa kèo (hoàn tiền)";
               })()}
             </div>
           )}
