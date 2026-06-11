@@ -16,9 +16,9 @@ const { getPool } = require("../config/db");
 
 const ODDS_API_BASE  = "https://api.the-odds-api.com/v4";
 const SPORT_KEY      = "soccer_fifa_world_cup";
-const MARKET         = "asian_handicap";
+const MARKET         = "spreads";
 const REGIONS        = "eu";               // eu | us | uk | au
-const BOOKMAKER_PREF = ["bet365", "pinnacle", "draftkings"]; // ưu tiên theo thứ tự
+const BOOKMAKER_PREF = ["pinnacle", "bet365", "betonlineag", "draftkings"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
