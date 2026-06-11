@@ -2,18 +2,44 @@ import { LOCK_BEFORE_MINUTES } from "../constants";
 
 // ─── MATCH HELPERS ────────────────────────────────────────────────────────────
 
-/** Áp tỷ lệ kèo chấp → trả "home" | "away" | null (hòa kèo = không ai thắng) */
+/** Áp tỷ lệ kèo chấp → trả "home" | "away" | "home_half" | "away_half" | null */
 export function applyHandicap(homeGoals, awayGoals, handicap) {
-  const adjHome = homeGoals + (handicap || 0);
-  if (adjHome > awayGoals) return "home";
-  if (adjHome < awayGoals) return "away";
+  if (!handicap) {
+    if (homeGoals > awayGoals) return "home";
+    if (homeGoals < awayGoals) return "away";
+    return null;
+  }
+
+  const absH = Math.abs(handicap);
+  const sign = Math.sign(handicap);
+
+  // Kèo nguyên (.00) hoặc nửa (.50) → tính thẳng
+  if (absH % 0.5 === 0) {
+    const adj = homeGoals + handicap;
+    if (adj > awayGoals) return "home";
+    if (adj < awayGoals) return "away";
+    return null;
+  }
+
+  // Kèo .25 hoặc .75 → split 2 dòng
+  const line1 = (Math.floor(absH * 2) / 2) * sign; // e.g. -1.25 → -1.00
+  const line2 = (Math.ceil(absH * 2) / 2) * sign;  // e.g. -1.25 → -1.50
+
+  const r1 = homeGoals + line1 > awayGoals ? "home"
+           : homeGoals + line1 < awayGoals ? "away" : null;
+  const r2 = homeGoals + line2 > awayGoals ? "home"
+           : homeGoals + line2 < awayGoals ? "away" : null;
+
+  if (r1 === r2) return r1; // thắng/thua hoàn toàn
+  if (r1 === "home" || r2 === "home") return "home_half";
+  if (r1 === "away" || r2 === "away") return "away_half";
   return null;
 }
 
 /** Kết quả thực tế (có tính kèo nếu có). */
 export function getMatchResult(homeGoals, awayGoals, handicap) {
   if (homeGoals === null || awayGoals === null) return null;
-  if (handicap) return applyHandicap(homeGoals, awayGoals, handicap);
+  if (handicap != null) return applyHandicap(homeGoals, awayGoals, handicap);
   if (homeGoals > awayGoals) return "home";
   if (homeGoals < awayGoals) return "away";
   return null;
@@ -32,7 +58,6 @@ export function matchStatusType(m) {
 }
 
 // ─── FORMAT HELPERS ───────────────────────────────────────────────────────────
-
 const VN_TZ = "Asia/Ho_Chi_Minh";
 
 /** Format điểm: +3 điểm / -1 điểm */
@@ -72,7 +97,6 @@ export function getCountdown(dateStr) {
 }
 
 // ─── LOCAL STORAGE STORE ──────────────────────────────────────────────────────
-
 export const store = {
   get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
