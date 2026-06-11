@@ -24,6 +24,7 @@ const BOOKMAKER_PREF = ["pinnacle", "bet365", "betonlineag", "draftkings"];
 
 /** Chuẩn hóa tên đội để so sánh fuzzy */
 function norm(name = "") {
+  if (!name) return "";
   return name.toLowerCase()
     .replace(/\brepublic\b/g, "")
     .replace(/\bkorea\b/g, "korea")
@@ -32,7 +33,6 @@ function norm(name = "") {
     .replace(/\s+/g, " ")
     .trim();
 }
-
 function teamsMatch(dbHome, dbAway, oddsHome, oddsAway) {
   const dh = norm(dbHome), da = norm(dbAway);
   const oh = norm(oddsHome), oa = norm(oddsAway);
