@@ -364,7 +364,6 @@ export function useAppStore() {
     doLogin, doLogout,
     doPredict, doSetResult, doSetHandicap, doCreateUser,
     doLoadTestScenario, doClearTestScenario,
-    injectTestMatches, ejectTestMatches,
     getUserPred,
     doChangePassword,
   };
