@@ -251,54 +251,6 @@ export default function PageAdmin({
               </div>
             </div>
           )}
-
-          {/* ── Tab: Test Mode ────────────────────────────────────────────── */}
-          {adminTab === "testmode" && (
-            <div>
-              <div className="card" style={{ padding: 20, marginBottom: 20, border: `1px solid ${C.gold}` }}>
-                <div style={{ fontFamily: "Barlow Condensed", fontWeight: 700, fontSize: 14, color: C.gold, marginBottom: 8, letterSpacing: 2 }}>
-                  🧪 TEST MODE — Full flow API-Football (Zafronix)
-                </div>
-                <div style={{ fontSize: 13, color: C.textDim, marginBottom: 16, lineHeight: 1.8 }}>
-                  Inject 4 trận giả vào <b style={{color:C.text}}>Lịch đấu thật</b> để test toàn bộ luồng:<br/>
-                  <span style={{color:C.gold}}>NS (mở DĐ)</span> · <span style={{color:"#f97316"}}>1H (đã khóa)</span> · <span style={{color:C.green}}>FT (có kết quả → tính điểm)</span>
-                </div>
-                <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-                  <button className="btn btn-gold" onClick={() => { doLoadTestScenario(); setTestActive(true); }}>
-                    🧪 Inject trận test vào Lịch đấu
-                  </button>
-                  {testActive && (
-                    <button className="btn btn-danger" onClick={() => { doClearTestScenario(); setTestActive(false); }}>
-                      🗑 Xóa trận test
-                    </button>
-                  )}
-                </div>
-                {testActive && (
-                  <div style={{ marginTop:12, padding:"10px 14px", background:"rgba(234,179,8,0.1)", borderRadius:8, fontSize:13, color:C.gold }}>
-                    ✅ Trận test đã inject — vào <b>📅 Lịch đấu</b> để thấy và dự đoán
-                  </div>
-                )}
-              </div>
-
-              <div className="card card-gold" style={{ padding: 18 }}>
-                <div style={{ fontFamily:"Barlow Condensed", fontWeight:700, fontSize:13, color:C.gold, marginBottom:10, letterSpacing:1 }}>
-                  📋 HƯỚNG DẪN TEST 6 BƯỚC
-                </div>
-                <ol style={{ margin:0, paddingLeft:20, fontSize:13, color:C.textDim, lineHeight:2.1 }}>
-                  <li>Bấm <b style={{color:C.text}}>"Inject trận test"</b> ở trên</li>
-                  <li>Đăng nhập bằng tài khoản user (tạo ở tab 👥 Người dùng nếu chưa có)</li>
-                  <li>Vào <b style={{color:C.text}}>📅 Lịch đấu</b> → thấy trận <b>8001 Brazil vs Argentina (NS)</b> → dự đoán tỉ số</li>
-                  <li>Trận <b>8002 France vs Germany (1H)</b> → dự đoán đã bị khóa ✓</li>
-                  <li>Quay lại Admin → tab <b style={{color:C.text}}>📅 Trận đấu</b> → nhập kết quả cho trận <b>8003 / 8004</b></li>
-                  <li>Điểm tự tính → kiểm tra <b style={{color:C.text}}>🏆 Xếp hạng</b> và <b style={{color:C.text}}>📜 Lịch sử</b></li>
-                </ol>
-                <div style={{ marginTop:14, padding:"10px 14px", background:"rgba(0,0,0,0.2)", borderRadius:8, fontSize:12, color:C.textFaint }}>
-                  <b style={{color:C.text}}>Trận 8003</b> Spain 2–1 England · Kèo -0.5 → Spain thắng thực tế (2-0.5=1.5 &gt; 1) → dự đoán "Nhà thắng" = ĐÚ́NG<br/>
-                  <b style={{color:C.text}}>Trận 8004</b> Portugal 1–1 USA · Không kèo → Hòa → dự đoán "Hòa" = ĐÚ́NG
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

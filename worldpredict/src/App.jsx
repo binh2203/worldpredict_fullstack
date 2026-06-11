@@ -95,8 +95,6 @@ export default function App() {
               leaderboard={leaderboard} predictions={predictions}
               showToast={showToast} doCreateUser={doCreateUser}
               backendMode={backendMode}
-              doLoadTestScenario={doLoadTestScenario}
-              doClearTestScenario={doClearTestScenario}
             />
           )}
         </div>
