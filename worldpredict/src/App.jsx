@@ -31,7 +31,6 @@ export default function App() {
     doPredict, doSetResult, doSetHandicap,
     doCreateUser,
     doChangePassword,
-    doLoadTestScenario, doClearTestScenario,
     getUserPred,
   } = store;
 

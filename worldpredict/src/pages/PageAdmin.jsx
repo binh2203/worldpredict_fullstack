@@ -14,7 +14,6 @@ export default function PageAdmin({
   leaderboard, predictions,
   showToast, doCreateUser, setModal,
   getUserPred, doPredict,
-  doLoadTestScenario, doClearTestScenario,
 }) {
   const [adminTab, setAdminTab] = useState("matches");
   const [testActive, setTestActive] = useState(false);
@@ -33,7 +32,6 @@ export default function PageAdmin({
     { id: "betrules",  icon: "🏅", label: "Điểm cược" },
     { id: "users",     icon: "👥", label: "Người dùng" },
     { id: "dashboard", icon: "📊", label: "Dashboard" },
-    { id: "testmode",  icon: "🧪", label: "Test Mode" },
   ];
 
   async function saveBetRule() {
