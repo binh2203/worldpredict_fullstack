@@ -40,7 +40,7 @@ export default function MatchCard({
       <button
         className={`pred-opt${isSelected ? ` ${value}-sel selected` : ""}`}
         disabled={isLocked || !currentUser || currentUser.role === "admin"}
-        onClick={() => doPredict(m.id, value)}
+        onClick={() => {console.log("🔥 CLICK BUTTON"); doPredict(m.id, value); }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           {logo && <img src={logo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />}
