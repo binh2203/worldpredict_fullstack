@@ -53,7 +53,11 @@ async function predict(req, res) {
   if (match.islocked || msUntilMatch <= 10 * 60 * 1000) {
     return res.status(400).json({ message: "Trận đã bị khóa dự đoán (trước 10 phút)" });
   }
-
+  console.log("Predict:", {
+    userId: req.user.id,
+    matchId,
+    choice
+  });
   // Upsert prediction
   await pool.query(`
     INSERT INTO predictions (UserId, MatchId, Choice)
@@ -61,7 +65,15 @@ async function predict(req, res) {
     ON CONFLICT (UserId, MatchId)
     DO UPDATE SET Choice = EXCLUDED.Choice, CreatedAt = NOW()
   `, [req.user.id, matchId, choice]);
+  const result = await pool.query(`
+    INSERT INTO predictions (UserId, MatchId, Choice)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (UserId, MatchId)
+    DO UPDATE SET Choice = EXCLUDED.Choice, CreatedAt = NOW()
+    RETURNING *
+  `, [req.user.id, matchId, choice]);
 
+  console.log(result.rows);
   const label = choice === "home" ? "Nhà thắng" : "Khách thắng";
   res.json({ message: `Dự đoán "${label}" đã lưu ✓` });
 }
