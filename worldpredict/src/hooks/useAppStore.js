@@ -81,11 +81,25 @@ export function useAppStore() {
 }, [backendMode, currentUser]);
 
   // ── Persist mock data vào localStorage ─────────────────────────────────────
-  useEffect(() => { if (USE_MOCK) store.set("wp_preds", predictions); }, [predictions]);
-  useEffect(() => { if (USE_MOCK) store.set("wp_matches", matches); }, [matches]);
-  useEffect(() => { if (USE_MOCK) store.set("wp_users", users); }, [users]);
-  useEffect(() => { if (USE_MOCK) store.set("wp_betrules", betRules); }, [betRules]);
-  useEffect(() => { if (USE_MOCK) store.set("wp_results", predResults); }, [predResults]);
+  useEffect(() => {
+    store.set("wp_preds", predictions);
+  }, [predictions]);
+
+  useEffect(() => {
+    store.set("wp_matches", matches);
+  }, [matches]);
+
+  useEffect(() => {
+    store.set("wp_users", users);
+  }, [users]);
+
+  useEffect(() => {
+    store.set("wp_betrules", betRules);
+  }, [betRules]);
+
+  useEffect(() => {
+    store.set("wp_results", predResults);
+  }, [predResults]);
   useEffect(() => {
     if (currentUser) store.set("wp_user", currentUser);
     else localStorage.removeItem("wp_user");
