@@ -119,9 +119,9 @@ export default function MatchCard({
       {rule && !isDone && !isLocked && (
         <div className="bet-rule-box" style={{ marginTop: 10 }}>
           💰 {m.round}: Đoán đúng{" "}
-          <span style={{ color: C.green }}>±{rule.winPoints} điểm</span> · đoán sai{" "}
-          <span style={{ color: C.red }}>-{rule.losePoints} điểm</span> · không đoán{" "}
-          <span style={{ color: C.orange }}>-{rule.defaultLosePoints} điểm</span>
+          <span style={{ color: C.green }}> {rule.winPoints} điểm</span> · đoán sai{" "}
+          <span style={{ color: C.red }}> -{rule.losePoints} điểm</span> · không đoán{" "}
+          <span style={{ color: C.orange }}> -{rule.defaultLosePoints} điểm</span>
         </div>
       )}
 
