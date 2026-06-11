@@ -32,7 +32,7 @@ export default function PageHome({
         <div style={{ fontFamily: "Barlow Condensed", fontSize: 12, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", color: C.goldDim, marginBottom: 14 }}>
           ⚽ USA · Canada · Mexico · 2026
         </div>
-        <h1 className="hero-title">World<br /><em>Predict</em></h1>
+        <h1 className="hero-title">World Cup<br /><em>Predict</em></h1>
         <p className="hero-sub">Dự đoán — Công bằng</p>
         {!currentUser && (
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>

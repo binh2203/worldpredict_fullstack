@@ -13,7 +13,7 @@ export default function Navbar({ page, setPage, currentUser, doLogout, setModal 
     <nav className="nav">
       <div className="wrap nav-inner">
         <div className="nav-logo">
-          World <span>Predict</span>{" "}
+          World Cup <span>Predict</span>{" "}
           <span style={{ color: C.goldDim, fontSize: 14 }}>2026</span>
         </div>
 
