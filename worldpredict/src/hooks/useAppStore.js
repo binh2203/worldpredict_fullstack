@@ -272,7 +272,8 @@ export function useAppStore() {
   const myLbEntry = leaderboard.find(u => u.id === currentUser?.id);
   const myRank    = leaderboard.findIndex(u => u.id === currentUser?.id) + 1;
 
-  // Override stats của chính mình bằng dữ liệu chuẩn từ DB (bao gồm no_prediction)
+  // Override stats của chính mình bằng dữ liệu chuẩn từ DB
+  // myStats lấy từ /api/users/my-stats — bao gồm đủ win/lose/no_prediction
   const myLbEntryFinal = (myLbEntry && myStats) ? {
     ...myLbEntry,
     correct:  myStats.correct,
