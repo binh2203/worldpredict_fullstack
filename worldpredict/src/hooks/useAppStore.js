@@ -20,6 +20,7 @@ export function useAppStore() {
   const [myStats,      setMyStats]      = useState(null);
   const lockTimerRef    = useRef(null);
   const syncIntervalRef = useRef(null);
+  const pendingPredRef  = useRef(false); // 🔒 block sync khi đang predict
 
   // ── Load backend khi khởi động ─────────────────────────────────────────────
   useEffect(() => {
@@ -44,7 +45,6 @@ export function useAppStore() {
 
       setBackendMode(true);
 
-      // Load myStats ngay khi khởi động nếu đã đăng nhập (không cần chờ sync interval)
       const token = store.get("wp_token", null);
       if (token) {
         try {
@@ -69,10 +69,13 @@ export function useAppStore() {
             api.getUserStats(),
           ]);
 
-          setPredictions(preds);
+          // ✅ Không ghi đè predictions nếu đang có pending predict
+          if (!pendingPredRef.current) {
+            setPredictions(preds);
+          }
+
           setUsers(freshUsers || []);
 
-          // Sync lại currentUser từ danh sách users mới nhất (cập nhật points, isActive...)
           const freshMe = (freshUsers || []).find(u => u.id === currentUser.id);
           if (freshMe) {
             setCurrentUser(prev => ({ ...prev, ...freshMe }));
@@ -93,7 +96,6 @@ export function useAppStore() {
             }));
           setPredResults(results);
 
-          // Lấy stats chuẩn từ DB (bao gồm cả no_prediction)
           setMyStats(stats);
 
         } catch (_) {}
@@ -101,7 +103,6 @@ export function useAppStore() {
       sync();
       syncIntervalRef.current = setInterval(sync, 15_000);
 
-      // Sync ngay khi user quay lại tab
       const onVisible = () => { if (document.visibilityState === "visible") sync(); };
       document.addEventListener("visibilitychange", onVisible);
 
@@ -176,54 +177,59 @@ export function useAppStore() {
   }
 
   // ── Predict ─────────────────────────────────────────────────────────────────
- // ── Predict ─────────────────────────────────────────────────────────────────
-function doPredict(matchId, choice) {
-  if (!currentUser) {
-    showToast("Vui lòng đăng nhập", "error");
-    return;
-  }
-
-  const match = matches.find(m => m.id === matchId);
-  if (!match) return;
-
-  if (match.isLocked || shouldBeLocked(match.matchDate)) {
-    showToast("🔒 Trận đã bị khóa dự đoán", "error");
-    return;
-  }
-
-  if (match.resultLocked) {
-    showToast("Kết quả đã được niêm phong", "error");
-    return;
-  }
-
-  // ✅ Optimistic update — UI đổi ngay lập tức, không chờ API
-  setPredictions(prev => {
-    const idx = prev.findIndex(p => p.userId === currentUser.id && p.matchId === matchId);
-    const newPred = {
-      id: `temp_${matchId}`,
-      userId: currentUser.id,
-      matchId,
-      choice,
-      createdAt: new Date().toISOString(),
-      result: null,
-    };
-    if (idx >= 0) {
-      const updated = [...prev];
-      updated[idx] = { ...prev[idx], choice };
-      return updated;
+  function doPredict(matchId, choice) {
+    if (!currentUser) {
+      showToast("Vui lòng đăng nhập", "error");
+      return;
     }
-    return [...prev, newPred];
-  });
 
-  // ✅ Fire-and-forget — không await, không block UI
-  api.predict(matchId, choice)
-    .then(res => showToast(res.message || "Dự đoán đã lưu ✓"))
-    .catch(e => {
-      showToast(e.message || "Lỗi khi gửi dự đoán", "error");
-      // Rollback nếu lỗi
-      api.getPredictions().then(updated => setPredictions(updated)).catch(() => {});
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    if (match.isLocked || shouldBeLocked(match.matchDate)) {
+      showToast("🔒 Trận đã bị khóa dự đoán", "error");
+      return;
+    }
+
+    if (match.resultLocked) {
+      showToast("Kết quả đã được niêm phong", "error");
+      return;
+    }
+
+    // ✅ Optimistic update — UI đổi ngay lập tức
+    setPredictions(prev => {
+      const idx = prev.findIndex(p => p.userId === currentUser.id && p.matchId === matchId);
+      const newPred = {
+        id: `temp_${matchId}`,
+        userId: currentUser.id,
+        matchId,
+        choice,
+        createdAt: new Date().toISOString(),
+        result: null,
+      };
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...prev[idx], choice };
+        return updated;
+      }
+      return [...prev, newPred];
     });
-}
+
+    // ✅ Block sync trong lúc gọi API
+    pendingPredRef.current = true;
+
+    api.predict(matchId, choice)
+      .then(res => {
+        showToast(res.message || "Dự đoán đã lưu ✓");
+        pendingPredRef.current = false; // 🔓 cho sync lại
+      })
+      .catch(e => {
+        showToast(e.message || "Lỗi khi gửi dự đoán", "error");
+        pendingPredRef.current = false;
+        // Rollback nếu lỗi
+        api.getPredictions().then(updated => setPredictions(updated)).catch(() => {});
+      });
+  }
 
   // ── Set Result ──────────────────────────────────────────────────────────────
   async function doSetResult(matchId, homeGoals, awayGoals) {
@@ -319,8 +325,6 @@ function doPredict(matchId, choice) {
   const myLbEntry = leaderboard.find(u => u.id === currentUser?.id);
   const myRank    = leaderboard.findIndex(u => u.id === currentUser?.id) + 1;
 
-  // Override stats của chính mình bằng dữ liệu chuẩn từ DB
-  // myStats lấy từ /api/users/my-stats — bao gồm đủ win/lose/no_prediction
   const myLbEntryFinal = (myLbEntry && myStats) ? {
     ...myLbEntry,
     correct:  myStats.correct,
