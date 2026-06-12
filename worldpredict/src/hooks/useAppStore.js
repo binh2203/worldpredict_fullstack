@@ -175,57 +175,56 @@ export function useAppStore() {
   }
 
   // ── Predict ─────────────────────────────────────────────────────────────────
-  async function doPredict(matchId, choice) {
-    if (!currentUser) {
-      showToast("Vui lòng đăng nhập", "error");
-      return;
-    }
-
-    const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-
-    if (match.isLocked || shouldBeLocked(match.matchDate)) {
-      showToast("🔒 Trận đã bị khóa dự đoán", "error");
-      return;
-    }
-
-    if (match.resultLocked) {
-      showToast("Kết quả đã được niêm phong", "error");
-      return;
-    }
-
-    // ✅ Optimistic update — cập nhật UI ngay, không chờ API
-    setPredictions(prev => {
-      const idx = prev.findIndex(p => p.userId === currentUser.id && p.matchId === matchId);
-      const newPred = {
-        id: `temp_${matchId}`,
-        userId: currentUser.id,
-        matchId,
-        choice,
-        createdAt: new Date().toISOString(),
-        result: null,
-      };
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = { ...prev[idx], choice };
-        return updated;
-      }
-      return [...prev, newPred];
-    });
-
-    // Gửi API ngầm, không await blocking
-    try {
-      const res = await api.predict(matchId, choice);
-      showToast(res.message || "Dự đoán đã lưu ✓");
-      // Sync lại để replace temp id bằng id thật
-      api.getPredictions().then(updated => setPredictions(updated)).catch(() => {});
-    } catch (e) {
-      // Rollback nếu lỗi
-      showToast(e.message || "Lỗi khi gửi dự đoán", "error");
-      api.getPredictions().then(updated => setPredictions(updated)).catch(() => {});
-    }
+ // ── Predict ─────────────────────────────────────────────────────────────────
+async function doPredict(matchId, choice) {
+  if (!currentUser) {
+    showToast("Vui lòng đăng nhập", "error");
+    return;
   }
 
+  const match = matches.find(m => m.id === matchId);
+  if (!match) return;
+
+  if (match.isLocked || shouldBeLocked(match.matchDate)) {
+    showToast("🔒 Trận đã bị khóa dự đoán", "error");
+    return;
+  }
+
+  if (match.resultLocked) {
+    showToast("Kết quả đã được niêm phong", "error");
+    return;
+  }
+
+  // Optimistic update — cập nhật UI ngay
+  setPredictions(prev => {
+    const idx = prev.findIndex(p => p.userId === currentUser.id && p.matchId === matchId);
+    const newPred = {
+      id: `temp_${matchId}`,
+      userId: currentUser.id,
+      matchId,
+      choice,
+      createdAt: new Date().toISOString(),
+      result: null,
+    };
+    if (idx >= 0) {
+      const updated = [...prev];
+      updated[idx] = { ...prev[idx], choice };
+      return updated;
+    }
+    return [...prev, newPred];
+  });
+
+  // Gửi API ngầm
+  try {
+    const res = await api.predict(matchId, choice);
+    showToast(res.message || "Dự đoán đã lưu ✓");
+    // ✅ Bỏ getPredictions() ở đây — sync 15s tự xử lý
+  } catch (e) {
+    // Rollback nếu lỗi
+    showToast(e.message || "Lỗi khi gửi dự đoán", "error");
+    api.getPredictions().then(updated => setPredictions(updated)).catch(() => {});
+  }
+}
   // ── Set Result ──────────────────────────────────────────────────────────────
   async function doSetResult(matchId, homeGoals, awayGoals) {
     const hg = parseInt(homeGoals);
