@@ -43,6 +43,15 @@ export function useAppStore() {
       setUsers(userData || []);
 
       setBackendMode(true);
+
+      // Load myStats ngay khi khởi động nếu đã đăng nhập (không cần chờ sync interval)
+      const token = store.get("wp_token", null);
+      if (token) {
+        try {
+          const stats = await api.getUserStats();
+          setMyStats(stats);
+        } catch (_) {}
+      }
     } catch (e) {
       console.error("Load backend failed:", e);
       setBackendMode(false);
@@ -54,8 +63,21 @@ export function useAppStore() {
     if (backendMode && currentUser) {
       const sync = async () => {
         try {
-          const preds = await api.getPredictions();
+          const [preds, freshUsers, stats] = await Promise.all([
+            api.getPredictions(),
+            api.getUsers(),
+            api.getUserStats(),
+          ]);
+
           setPredictions(preds);
+          setUsers(freshUsers || []);
+
+          // Sync lại currentUser từ danh sách users mới nhất (cập nhật points, isActive...)
+          const freshMe = (freshUsers || []).find(u => u.id === currentUser.id);
+          if (freshMe) {
+            setCurrentUser(prev => ({ ...prev, ...freshMe }));
+            store.set("wp_user", { ...currentUser, ...freshMe });
+          }
 
           const results = preds
             .filter(p => p.result !== null)
@@ -72,14 +94,21 @@ export function useAppStore() {
           setPredResults(results);
 
           // Lấy stats chuẩn từ DB (bao gồm cả no_prediction)
-          const stats = await api.getUserStats();
           setMyStats(stats);
 
         } catch (_) {}
       };
       sync();
-      syncIntervalRef.current = setInterval(sync, 60_000);
-      return () => clearInterval(syncIntervalRef.current);
+      syncIntervalRef.current = setInterval(sync, 15_000);
+
+      // Sync ngay khi user quay lại tab
+      const onVisible = () => { if (document.visibilityState === "visible") sync(); };
+      document.addEventListener("visibilitychange", onVisible);
+
+      return () => {
+        clearInterval(syncIntervalRef.current);
+        document.removeEventListener("visibilitychange", onVisible);
+      };
     }
   }, [backendMode, currentUser]);
 
