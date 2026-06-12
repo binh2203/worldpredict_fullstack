@@ -6,24 +6,24 @@ import api from "../services/api";
 export function useAppStore() {
   const [page,         setPage]         = useState("home");
   const [currentUser,  setCurrentUser]  = useState(() => store.get("wp_user", null));
-  // ── Khởi tạo matches với mock data luôn — backend sẽ override nếu available ──
-  const [matches, setMatches] = useState([]);
-  const [predictions, setPredictions] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [betRules, setBetRules] = useState(DEFAULT_BET_RULES);
-  const [predResults, setPredResults] = useState([]);
+  const [matches,      setMatches]      = useState([]);
+  const [predictions,  setPredictions]  = useState([]);
+  const [users,        setUsers]        = useState([]);
+  const [betRules,     setBetRules]     = useState(DEFAULT_BET_RULES);
+  const [predResults,  setPredResults]  = useState([]);
   const [toast,        setToast]        = useState(null);
   const [modal,        setModal]        = useState(null);
   const [confetti,     setConfetti]     = useState(false);
   const [roundFilter,  setRoundFilter]  = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [backendMode,  setBackendMode]  = useState(false);  // false cho đến khi xác nhận backend OK
-  const lockTimerRef   = useRef(null);
+  const [backendMode,  setBackendMode]  = useState(false);
+  const [myStats,      setMyStats]      = useState(null);
+  const lockTimerRef    = useRef(null);
   const syncIntervalRef = useRef(null);
 
   // ── Load backend khi khởi động ─────────────────────────────────────────────
   useEffect(() => {
-  const token = store.get("wp_token", null);
+    const token = store.get("wp_token", null);
     if (token) {
       api.setToken(token);
     }
@@ -51,34 +51,37 @@ export function useAppStore() {
 
   // ── Auto-sync predictions khi backend mode ─────────────────────────────────
   useEffect(() => {
-  if (backendMode && currentUser) {
-    const sync = async () => {
-      try {
-        const preds = await api.getPredictions();
-        setPredictions(preds);
+    if (backendMode && currentUser) {
+      const sync = async () => {
+        try {
+          const preds = await api.getPredictions();
+          setPredictions(preds);
 
-        // ← THÊM: map predResults từ backend
-        const results = preds
-          .filter(p => p.result !== null)
-          .map(p => ({
-            id:           p.id,
-            predictionId: p.id,
-            userId:       p.userId,
-            matchId:      p.matchId,
-            isCorrect:    p.result.isCorrect,
-            pointChange:  p.result.pointChange,
-            reason:       p.result.reason,
-            calculatedAt: p.result.calculatedAt,
-          }));
-        setPredResults(results);
+          const results = preds
+            .filter(p => p.result !== null)
+            .map(p => ({
+              id:           p.id,
+              predictionId: p.id,
+              userId:       p.userId,
+              matchId:      p.matchId,
+              isCorrect:    p.result.isCorrect,
+              pointChange:  p.result.pointChange,
+              reason:       p.result.reason,
+              calculatedAt: p.result.calculatedAt,
+            }));
+          setPredResults(results);
 
-      } catch (_) {}
-    };
-    sync();
-    syncIntervalRef.current = setInterval(sync, 60_000);
-    return () => clearInterval(syncIntervalRef.current);
-  }
-}, [backendMode, currentUser]);
+          // Lấy stats chuẩn từ DB (bao gồm cả no_prediction)
+          const stats = await api.getUserStats();
+          setMyStats(stats);
+
+        } catch (_) {}
+      };
+      sync();
+      syncIntervalRef.current = setInterval(sync, 60_000);
+      return () => clearInterval(syncIntervalRef.current);
+    }
+  }, [backendMode, currentUser]);
 
   useEffect(() => {
     if (currentUser) store.set("wp_user", currentUser);
@@ -164,12 +167,9 @@ export function useAppStore() {
         return;
       }
 
-      // 🔥 GỌI BACKEND TRỰC TIẾP
       const res = await api.predict(matchId, choice);
-
       showToast(res.message || "Dự đoán đã lưu ✓");
 
-      // 🔄 refresh predictions từ backend
       const updated = await api.getPredictions();
       setPredictions(updated);
 
@@ -207,9 +207,7 @@ export function useAppStore() {
     try {
       await api.setHandicap(
         matchId,
-        handicap === "" || handicap === null
-          ? null
-          : parseFloat(handicap)
+        handicap === "" || handicap === null ? null : parseFloat(handicap)
       );
 
       setMatches(await api.getMatches());
@@ -230,12 +228,7 @@ export function useAppStore() {
     }
 
     try {
-      await api.createUser({
-        username,
-        password,
-        fullName,
-        phone,
-      });
+      await api.createUser({ username, password, fullName, phone });
 
       setUsers(await api.getUsers());
 
@@ -261,8 +254,8 @@ export function useAppStore() {
         const rk = ROUNDS.includes(match?.round) ? match.round : "Vòng bảng";
         if (!roundStats[rk]) roundStats[rk] = { correct: 0, wrong: 0, noPred: 0, points: 0 };
         roundStats[rk].points = (roundStats[rk].points || 0) + (r.pointChange ?? 0);
-        if (r.reason === "win")  { correct++; roundStats[rk].correct++; }
-        else if (r.reason === "lose") { wrong++; roundStats[rk].wrong++; }
+        if (r.reason === "win")       { correct++; roundStats[rk].correct++; }
+        else if (r.reason === "lose") { wrong++;   roundStats[rk].wrong++;   }
         else { noPred++; roundStats[rk].noPred = (roundStats[rk].noPred || 0) + 1; }
       });
       const total = correct + wrong;
@@ -278,6 +271,15 @@ export function useAppStore() {
 
   const myLbEntry = leaderboard.find(u => u.id === currentUser?.id);
   const myRank    = leaderboard.findIndex(u => u.id === currentUser?.id) + 1;
+
+  // Override stats của chính mình bằng dữ liệu chuẩn từ DB (bao gồm no_prediction)
+  const myLbEntryFinal = (myLbEntry && myStats) ? {
+    ...myLbEntry,
+    correct:  myStats.correct,
+    wrong:    myStats.wrong,
+    noPred:   myStats.noPred,
+    accuracy: myStats.accuracy,
+  } : myLbEntry;
 
   const filteredMatches = useMemo(() => {
     return matches.filter(m => {
@@ -295,23 +297,11 @@ export function useAppStore() {
 
   async function doChangePassword(currentPassword, newPassword) {
     try {
-      const res = await api.changePassword(
-        currentPassword,
-        newPassword
-      );
-
-      showToast(
-        res.message || "Đổi mật khẩu thành công",
-        "success"
-      );
-
+      const res = await api.changePassword(currentPassword, newPassword);
+      showToast(res.message || "Đổi mật khẩu thành công", "success");
       return true;
     } catch (e) {
-      showToast(
-        e.message || "Đổi mật khẩu thất bại",
-        "error"
-      );
-
+      showToast(e.message || "Đổi mật khẩu thất bại", "error");
       return false;
     }
   }
@@ -321,7 +311,7 @@ export function useAppStore() {
     matches, setMatches, predictions, users, setUsers,
     betRules, setBetRules, predResults, toast, modal, setModal, confetti,
     roundFilter, setRoundFilter, statusFilter, setStatusFilter, backendMode,
-    leaderboard, myLbEntry, myRank, filteredMatches,
+    leaderboard, myLbEntry: myLbEntryFinal, myRank, filteredMatches,
     showToast,
     doLogin, doLogout,
     doPredict, doSetResult, doSetHandicap, doCreateUser,
