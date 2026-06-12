@@ -2,30 +2,45 @@ import { C } from "../styles/theme";
 import { matchStatusType, getMatchResult, fmtDate, fmtTime, fmtDateTime, getCountdown } from "../utils/helpers";
 import { DEFAULT_BET_RULES } from "../constants";
 
-// ─── HANDICAP LABEL HELPER ────────────────────────────────────────────────────
-// Theo OddsAPI: point âm = đội đó chấp (đội mạnh hơn)
-// m.handicap lưu point của home team
-// home < 0 → home chấp away
-// home > 0 → away chấp home
 function handicapLabel(m) {
   const h = m.handicap;
   if (h === null || h === undefined) return "";
-
   if (h < 0) return `${m.homeTeam?.name} chấp ${Math.abs(h)}`;
   return `${m.awayTeam?.name} chấp ${h}`;
 }
 
-// ─── MATCH CARD ───────────────────────────────────────────────────────────────
+// ─── CHOICE BTN — đưa ra ngoài để tránh re-create mỗi render ─────────────────
+function ChoiceBtn({ value, label, logo, isSelected, isLocked, currentUser, actualResult, isDone, rule, matchId, doPredict }) {
+  const pointText =
+    rule &&
+    (value === actualResult
+      ? `+${rule.winPoints} điểm`
+      : isDone
+      ? `-${rule.losePoints} điểm`
+      : null);
 
+  return (
+    <button
+      className={`pred-opt${isSelected ? ` ${value}-sel selected` : ""}`}
+      disabled={isLocked || !currentUser || currentUser.role === "admin"}
+      onClick={() => doPredict(matchId, value)}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        {logo && <img src={logo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />}
+        <span>{label}</span>
+      </div>
+      {pointText && (
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2, fontFamily: "Barlow" }}>
+          {pointText}
+        </div>
+      )}
+    </button>
+  );
+}
+
+// ─── MATCH CARD ───────────────────────────────────────────────────────────────
 export default function MatchCard({
-  m,
-  showAdmin,
-  currentUser,
-  betRules,
-  predResults,
-  getUserPred,
-  doPredict,
-  setModal,
+  m, showAdmin, currentUser, betRules, predResults, getUserPred, doPredict, setModal,
 }) {
   const st       = matchStatusType(m);
   const isLive   = st === "live";
@@ -35,39 +50,9 @@ export default function MatchCard({
   const myResult = predResults.find(r => r.userId === currentUser?.id && r.matchId === m.id);
   const hasHcap  = m.handicap !== null && m.handicap !== undefined;
   const rule     = betRules[m.round] || betRules["Vòng bảng"] || DEFAULT_BET_RULES["Vòng bảng"];
-  const countdown     = !isLocked ? getCountdown(m.matchDate) : null;
-  const almostLocked  = countdown && parseInt(countdown) <= 60 && !countdown.includes("h");
-  const actualResult  = isDone ? getMatchResult(m.homeGoals, m.awayGoals, m.handicap) : null;
-
-  function ChoiceBtn({ value, label, logo }) {
-    const isSelected = myPred?.choice === value;
-    const pointText =
-      rule &&
-      (value === actualResult
-        ? `+${rule.winPoints} điểm`
-        : isDone
-        ? `-${rule.losePoints} điểm`
-        : null);
-
-    return (
-      <button
-        className={`pred-opt${isSelected ? ` ${value}-sel selected` : ""}`}
-        disabled={isLocked || !currentUser || currentUser.role === "admin"}
-        onClick={() => doPredict(m.id, value)}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          {logo && <img src={logo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />}
-          <span>{label}</span>
-        </div>
-
-        {pointText && (
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2, fontFamily: "Barlow" }}>
-            {pointText}
-          </div>
-        )}
-      </button>
-    );
-  }
+  const countdown    = !isLocked ? getCountdown(m.matchDate) : null;
+  const almostLocked = countdown && parseInt(countdown) <= 60 && !countdown.includes("h");
+  const actualResult = isDone ? getMatchResult(m.homeGoals, m.awayGoals, m.handicap) : null;
 
   return (
     <div className={`card match-card ${m.resultLocked ? "card-red" : almostLocked ? "card-gold" : ""}`}>
@@ -81,11 +66,7 @@ export default function MatchCard({
           <span style={{ marginLeft: 8, color: C.goldDim }}>{m.round || ""}</span>
         </div>
         <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
-          {hasHcap && (
-            <span className="badge badge-hcap">
-              {handicapLabel(m)}
-            </span>
-          )}
+          {hasHcap && <span className="badge badge-hcap">{handicapLabel(m)}</span>}
           {isLive  && <span className="badge badge-live"><span className="live-dot" /> Live</span>}
           {isDone  && !m.resultLocked && <span className="badge badge-done">KT</span>}
           {m.resultLocked && <span className="badge badge-sealed">🔒 Niêm phong</span>}
@@ -124,8 +105,7 @@ export default function MatchCard({
               →{" "}
               {actualResult === "home"
                 ? `🏠 ${m.homeTeam?.name} thắng kèo`
-                : `✈️ ${m.awayTeam?.name} thắng kèo`
-              }
+                : `✈️ ${m.awayTeam?.name} thắng kèo`}
             </span>
           )}
         </div>
@@ -152,11 +132,27 @@ export default function MatchCard({
               value="home"
               logo={m.homeTeam?.logo}
               label={hasHcap ? `${m.homeTeam?.name} Thắng Kèo` : m.homeTeam?.name}
+              isSelected={myPred?.choice === "home"}
+              isLocked={isLocked}
+              currentUser={currentUser}
+              actualResult={actualResult}
+              isDone={isDone}
+              rule={rule}
+              matchId={m.id}
+              doPredict={doPredict}
             />
             <ChoiceBtn
               value="away"
               logo={m.awayTeam?.logo}
               label={hasHcap ? `${m.awayTeam?.name} Thắng Kèo` : m.awayTeam?.name}
+              isSelected={myPred?.choice === "away"}
+              isLocked={isLocked}
+              currentUser={currentUser}
+              actualResult={actualResult}
+              isDone={isDone}
+              rule={rule}
+              matchId={m.id}
+              doPredict={doPredict}
             />
           </div>
         </div>
