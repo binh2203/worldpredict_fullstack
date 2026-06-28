@@ -10,7 +10,8 @@ const pool = new Pool({
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
 });
 
-pool.on("connect", () => {
+pool.on("connect", (client) => {
+  client.query("SET timezone = 'UTC'");
   console.log(`✅ DB connected: ${process.env.DB_HOST || "localhost"} / ${process.env.DB_NAME}`);
 });
 
