@@ -35,7 +35,13 @@ export default function PageHistory({
     }).filter(Boolean);
 
   const allItems = [...myPreds, ...myNoPreds];
-  const filtered = activeRound === "all" ? allItems : allItems.filter(p => p.match.round === activeRound);
+  const filtered = (activeRound === "all" ? allItems : allItems.filter(p => p.match.round === activeRound))
+    .sort((a, b) => {
+      const aDone = a.match.resultLocked;
+      const bDone = b.match.resultLocked;
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      return new Date(a.match.matchDate) - new Date(b.match.matchDate);
+    });
 
   return (
     <div className="wrap section">
@@ -93,17 +99,19 @@ export default function PageHistory({
               const isNP = p.noPred;
               const r    = p.result;
               return (
-                <div key={i} className="card" style={{ padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 600, marginBottom: 3 }}>
-                      {p.match.homeTeam?.name} <span style={{ color: C.textFaint }}>vs</span> {p.match.awayTeam?.name}
+                <div key={i} className="card" style={{ padding: "14px 18px" }}>
+                  <div className="history-card-inner" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: 3 }}>
+                        {p.match.homeTeam?.name} <span style={{ color: C.textFaint }}>vs</span> {p.match.awayTeam?.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textFaint }}>
+                        {fmtDate(p.match.matchDate)} · {p.match.round}
+                        {p.match.handicap && <span className="badge badge-hcap" style={{ marginLeft: 8 }}>Kèo</span>}
+                        {!p.match.resultLocked && <span className="badge badge-upcoming" style={{ marginLeft: 8 }}>⏳ Sắp tới</span>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: C.textFaint }}>
-                      {fmtDate(p.match.matchDate)} · {p.match.round}
-                      {p.match.handicap && <span className="badge badge-hcap" style={{ marginLeft: 8 }}>Kèo</span>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                    <div className="history-card-right" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                     {!isNP && (
                       <div style={{ textAlign: "center" }}>
                         <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 2 }}>Dự đoán</div>
@@ -141,6 +149,7 @@ export default function PageHistory({
                       : p.match.resultLocked
                         ? <span className="badge badge-pending">⏳ Đang tính...</span>
                         : <span className="badge badge-pending">⏳ Chờ</span>}
+                    </div>
                   </div>
                 </div>
               );
