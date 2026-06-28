@@ -36,6 +36,20 @@ const globalCss = `
   .nav-user-name { font-size: 13px; font-weight: 600; color: ${C.gold}; }
   .nav-user-role { font-size: 10px; color: ${C.textFaint}; letter-spacing: 1px; text-transform: uppercase; }
 
+  /* Mobile nav elements - hidden on desktop */
+  .nav-mobile-right { display: none; align-items: center; gap: 10px; margin-left: auto; }
+  .nav-hamburger { font-size: 18px; padding: 6px 10px; }
+  .nav-mobile-menu { display: none; flex-direction: column; background: rgba(7,8,15,0.98);
+    border-top: 1px solid ${C.goldBorder}; padding: 8px 0; }
+  .nav-mobile-item { background: none; border: none; padding: 12px 20px; text-align: left;
+    font-family: 'Barlow Condensed'; font-size: 14px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: ${C.textDim}; cursor: pointer; transition: all 0.15s; }
+  .nav-mobile-item:hover, .nav-mobile-item.active { color: ${C.gold}; background: ${C.goldFaint}; }
+  .nav-mobile-divider { height: 1px; background: ${C.border}; margin: 4px 0; }
+  .nav-links-desktop { display: flex; gap: 2px; flex: 1; overflow-x: auto; }
+  .nav-links-desktop::-webkit-scrollbar { display: none; }
+  .nav-user-desktop { display: flex; align-items: center; gap: 12px; margin-left: auto; padding-left: 20px; white-space: nowrap; }
+
   /* ── BUTTONS ── */
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none;
     border-radius: 6px; cursor: pointer; font-family: 'Barlow Condensed'; font-weight: 600;
@@ -212,13 +226,83 @@ const globalCss = `
 
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
+    .wrap { padding: 0 14px; }
+
+    /* Grid */
     .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
+
+    /* Nav */
+    .nav-inner { flex-wrap: nowrap; height: 54px; }
+    .nav-logo { font-size: 15px; margin-right: 0; }
+    .nav-links-desktop { display: none; }
+    .nav-user-desktop { display: none; }
+    .nav-mobile-right { display: flex; }
+    .nav-mobile-menu { display: flex; }
+
+    /* Admin */
     .admin-grid { grid-template-columns: 1fr; }
-    .admin-sidebar { flex-direction: row; flex-wrap: wrap; }
+    .admin-sidebar { flex-direction: row; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+    .admin-nav-item { padding: 8px 12px; font-size: 11px; }
+
+    /* Match card */
+    .match-card { padding: 14px; }
+    .team-name { font-size: 13px; }
+    .team-logo { width: 28px; height: 28px; }
+    .score-big { font-size: 24px; }
+
+    /* History table */
+    .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
+
+    /* Section */
+    .section { padding: 18px 0; }
+    .section-title { font-size: 18px; }
+    .section-head { margin-bottom: 14px; }
+
+    /* Hero */
+    .hero { padding: 36px 0 24px; }
+    .hero-sub { font-size: 14px; }
+
+    /* Leaderboard podium */
+    .podium-grid { grid-template-columns: 1fr 1.1fr 1fr !important; gap: 8px !important; }
+
+    /* Round chips */
+    .round-chips { gap: 4px; }
+    .round-chip { padding: 4px 10px; font-size: 10px; }
+
+    /* Tab row */
+    .tab-btn { padding: 6px 12px; font-size: 11px; }
+
+    /* Modal */
+    .modal-box { padding: 22px 18px; }
+
+    /* Toast */
+    .toast { min-width: unset; width: calc(100vw - 32px); right: 16px; font-size: 13px; }
+
+    /* Stat box */
+    .stat-num { font-size: 28px; }
   }
+
   @media (max-width: 520px) {
     .grid-3, .grid-4, .grid-2 { grid-template-columns: 1fr; }
+
+    /* Nav: ẩn tên user, chỉ hiện điểm */
+    .nav-user-name { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Match card: stack team names */
+    .team-section { gap: 6px; }
+    .pred-opts { gap: 4px; }
+    .pred-opt { padding: 8px 2px; font-size: 11px; }
+
+    /* History card: stack vertically */
+    .history-card-inner { flex-direction: column !important; align-items: flex-start !important; }
+    .history-card-right { flex-direction: row !important; flex-wrap: wrap !important; gap: 8px !important; }
+
+    /* Admin betrules table */
+    .betrules-table th, .betrules-table td { padding: 6px 8px; font-size: 11px; }
+
+    /* Leaderboard table: ẩn cột ít quan trọng */
+    .lb-col-accuracy { display: none; }
   }
 `;
 
