@@ -6,6 +6,7 @@ export const USE_MOCK = false;
 
 export const ROUNDS = [
   "Vòng bảng",
+  "Vòng 1/16",
   "Vòng 1/8",
   "Tứ kết",
   "Bán kết",
@@ -19,6 +20,7 @@ export const DONE_STATUSES = ["FT", "AET", "PEN"];
 // Điểm mặc định (không còn tiền VNĐ)
 export const DEFAULT_BET_RULES = {
   "Vòng bảng":    { winPoints: 3,  losePoints: 1, defaultLosePoints: 2  },
+  "Vòng 1/16":    { winPoints: 4,  losePoints: 1, defaultLosePoints: 2  },
   "Vòng 1/8":     { winPoints: 5,  losePoints: 2, defaultLosePoints: 3  },
   "Tứ kết":       { winPoints: 7,  losePoints: 3, defaultLosePoints: 4  },
   "Bán kết":      { winPoints: 10, losePoints: 4, defaultLosePoints: 6  },
