@@ -334,14 +334,23 @@ export function useAppStore() {
   } : myLbEntry;
 
   const filteredMatches = useMemo(() => {
-    return matches.filter(m => {
-      const st = matchStatusType(m);
-      if (roundFilter  !== "all" && m.round !== roundFilter) return false;
-      if (statusFilter === "upcoming" && (st === "done" || st === "live")) return false;
-      if (statusFilter === "live"     && st !== "live")  return false;
-      if (statusFilter === "done"     && st !== "done")  return false;
-      return true;
-    });
+    return matches
+      .filter(m => {
+        const st = matchStatusType(m);
+        if (roundFilter  !== "all" && m.round !== roundFilter) return false;
+        if (statusFilter === "upcoming" && (st === "done" || st === "live")) return false;
+        if (statusFilter === "live"     && st !== "live")  return false;
+        if (statusFilter === "done"     && st !== "done")  return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const stA = matchStatusType(a);
+        const stB = matchStatusType(b);
+        const order = { live: 0, upcoming: 1, done: 2 };
+        const diff = (order[stA] ?? 1) - (order[stB] ?? 1);
+        if (diff !== 0) return diff;
+        return new Date(a.matchDate) - new Date(b.matchDate);
+      });
   }, [matches, roundFilter, statusFilter]);
 
   const getUserPred = (matchId) =>
