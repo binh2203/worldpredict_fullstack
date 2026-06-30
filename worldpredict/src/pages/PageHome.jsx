@@ -16,12 +16,6 @@ export default function PageHome({
 
   // ── WC Group Stage stats (từ API Football) ──────────────────────────────
   const [wcStats, setWcStats] = useState(null);
-  useEffect(() => {
-    fetch(`${API_URL}/wc-fixtures`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d?.groupStats ? setWcStats(d.groupStats) : null)
-      .catch(() => {});
-  }, []);
 
   const matchCardProps = { currentUser, betRules, predResults, getUserPred, doPredict, setModal };
 

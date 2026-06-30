@@ -134,11 +134,7 @@ const api = {
   // ─────────────────────────────────────────────────────────────
   // WC FIXTURES
   // ─────────────────────────────────────────────────────────────
-  getWcFixtures: (round) =>
-    api.call(
-      "/wc-fixtures" +
-        (round ? `?round=${encodeURIComponent(round)}` : "")
-    ),
+
 };
 
 export default api;
