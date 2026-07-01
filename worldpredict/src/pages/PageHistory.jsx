@@ -103,14 +103,14 @@ export default function PageHistory({
                   <div className="history-card-inner" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: 3 }}>
-                        {p.match.homeTeam?.name} <span style={{ color: C.textFaint }}>vs</span> {p.match.awayTeam?.name}
+                        {p.match.homeTeam?.name} (Nhà) <span style={{ color: C.textFaint }}>vs</span> {p.match.awayTeam?.name} (Khách)
                       </div>
                       <div style={{ fontSize: 12, color: C.textFaint }}>
                         {fmtDate(p.match.matchDate)} · {p.match.round}
 
                         {p.match.handicap && (
                           <span className="badge badge-hcap" style={{ marginLeft: 8 }}>
-                            {`Kèo: ${p.match.handicap > 0 ? "Nhà chấp" : "Khách chấp"} ${p.match.handicap}`}
+                            {`Kèo: ${p.match.handicap < 0 ? "Nhà chấp" : "Khách chấp"} ${Math.abs(p.match.handicap)}`}
                           </span>
                         )}
 
