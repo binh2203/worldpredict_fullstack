@@ -107,8 +107,18 @@ export default function PageHistory({
                       </div>
                       <div style={{ fontSize: 12, color: C.textFaint }}>
                         {fmtDate(p.match.matchDate)} · {p.match.round}
-                        {p.match.handicap && <span className="badge badge-hcap" style={{ marginLeft: 8 }}>Kèo</span>}
-                        {!p.match.resultLocked && <span className="badge badge-upcoming" style={{ marginLeft: 8 }}>⏳ Sắp tới</span>}
+
+                        {p.match.handicap && (
+                          <span className="badge badge-hcap" style={{ marginLeft: 8 }}>
+                            {`Kèo: ${p.match.handicap > 0 ? "Nhà chấp" : "Khách chấp"} ${p.match.handicap}`}
+                          </span>
+                        )}
+
+                        {!p.match.resultLocked && (
+                          <span className="badge badge-upcoming" style={{ marginLeft: 8 }}>
+                            ⏳ Sắp tới
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="history-card-right" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -135,7 +145,7 @@ export default function PageHistory({
                       const isCorrect = r.isCorrect;
                       return (
                         <div style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 2 }}>Dự đoán</div>
+                          <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 2 }}>Kết quả</div>
                           {isCorrect
                             ? <span className="badge badge-money-win">✓ Đúng</span>
                             : <span className="badge badge-money-lose">✗ Sai</span>}
