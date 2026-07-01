@@ -57,7 +57,7 @@ export default function PageHistory({
         <div style={{ marginBottom: 24 }}>
           <div style={{ overflowX: "auto" }}>
             <div style={{ display: "grid", gridTemplateColumns: "140px repeat(4,1fr)", minWidth: 520 }}>
-              {["Vòng đấu", "Thắng", "Thua", "Không cá", "Điểm"].map(h => (
+              {["Vòng đấu", "Đúng", "Sai", "Không cá", "Điểm"].map(h => (
                 <div key={h} style={{ fontFamily: "Barlow Condensed", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: C.goldDim, padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
                   {h}
                 </div>
@@ -132,13 +132,13 @@ export default function PageHistory({
                     {p.match.resultLocked && !isNP && (() => {
                       const actualResult = getMatchResult(p.match.homeGoals, p.match.awayGoals, p.match.handicap);
                       // actualResult null = hòa kèo → không ai thắng → Thua hết
-                      const isCorrect = actualResult !== null && p.choice === actualResult;
+                      const isCorrect = r.isCorrect;
                       return (
                         <div style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 2 }}>Kết quả</div>
+                          <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 2 }}>Dự đoán</div>
                           {isCorrect
-                            ? <span className="badge badge-money-win">✓ Thắng</span>
-                            : <span className="badge badge-money-lose">✗ Thua</span>}
+                            ? <span className="badge badge-money-win">✓ Đúng</span>
+                            : <span className="badge badge-money-lose">✗ Sai</span>}
                         </div>
                       );
                     })()}
